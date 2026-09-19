@@ -18,6 +18,7 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
+import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {PressureBarrier} from 'resource:///org/gnome/shell/ui/layout.js';
@@ -78,11 +79,15 @@ export class PanelAutohide {
         this._enabled = false;
         this._reassertId = 0;
         this._shieldId = 0;
+
+        this._searchBin = null;
+        this._origSearchStyle = null;
     }
 
     enable() {
         this._strutEntry = Main.layoutManager._trackedActors
             .find(entry => entry.actor === this._panelBox) ?? null;
+        this._padOverviewSearch();
         this._releaseStrut();
 
         this._createPressureBarrier();
@@ -96,6 +101,7 @@ export class PanelAutohide {
         this._panelBox.connectObject('notify::height', () => {
             if (this._state === State.HIDDEN)
                 this._panelBox.translation_y = -this._panelHeight();
+            this._applySearchPadding();
         }, this);
 
         global.display.connectObject(
@@ -188,11 +194,54 @@ export class PanelAutohide {
         this._panelBox.translation_y = 0;
         this._state = State.SHOWN;
 
+        this._unpadOverviewSearch();
+
         if (this._strutEntry) {
             this._strutEntry.affectsStruts = true;
             Main.layoutManager._queueUpdateRegions();
             this._strutEntry = null;
         }
+    }
+
+    // --- overview ----------------------------------------------------------
+
+    // overviewControls allocates the search entry at the top edge of the work
+    // area, and places everything below it — thumbnails, workspaces, app grid
+    // — relative to that entry's height. With the strut released the top edge
+    // is the top of the screen, so the entry sits under the bar.
+    //
+    // Padding the entry rather than shifting _workAreaBox is deliberate. That
+    // box is also the 1:1 target the workspace animates to as the overview
+    // closes (_computeWorkspacesBoxForState, ControlsState.HIDDEN), so moving
+    // it leaves the animation landing a bar's height away from where the real
+    // windows are, which shows as a jump right at the end of the close.
+    _padOverviewSearch() {
+        this._searchBin =
+            Main.overview?._overview?.controls?._searchEntryBin ?? null;
+        if (!this._searchBin)
+            return;
+
+        this._origSearchStyle = this._searchBin.get_style();
+        this._applySearchPadding();
+    }
+
+    _applySearchPadding() {
+        if (!this._searchBin)
+            return;
+
+        // St scales CSS lengths by the scale factor; the panel's height is
+        // already in stage coordinates.
+        const {scale_factor: scale} = St.ThemeContext.get_for_stage(global.stage);
+        const existing = this._origSearchStyle ? `${this._origSearchStyle};` : '';
+
+        this._searchBin.set_style(
+            `${existing}padding-top: ${this._panelHeight() / (scale || 1)}px;`);
+    }
+
+    _unpadOverviewSearch() {
+        this._searchBin?.set_style(this._origSearchStyle);
+        this._searchBin = null;
+        this._origSearchStyle = null;
     }
 
     // --- timeouts ----------------------------------------------------------
