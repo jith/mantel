@@ -3,8 +3,6 @@
   "name": "Mantel",
   "description": "Two things the GNOME top bar could do better, each optional.\n\n• Workspace numbers — replaces the top bar's anonymous workspace dots with numbers. Click one to switch. Super+1…0 jumps straight to a workspace, creating it if it does not exist yet, and the bottom-centre workspace switcher popup is gone.\n\n• Auto-hide the top bar — the bar stays out of the way while a window needs the space and comes back when you push the pointer at the top edge. It follows the same intellihide rules as the Ubuntu Dock: visible when nothing overlaps it, hidden when something does. Windows keep the full screen height, so nothing resizes when you peek.\n\nEither feature can be turned off on its own in Preferences.",
   "shell-version": [
-    "48",
-    "49",
     "50"
   ],
   "url": "https://github.com/jith/mantel",

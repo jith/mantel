@@ -55,7 +55,13 @@ Both take effect immediately — no logout needed to toggle them.
 
 ## Requirements
 
-GNOME Shell 48, 49 or 50.
+GNOME Shell 50.
+
+GNOME 48 and 49 are not supported yet. Their `ActivitiesButton` handles clicks
+through `vfunc_event()` rather than a `Clutter.ClickGesture`, which the numbered
+indicator relies on both to receive clicks and to stop the overview opening on
+top of them. Supporting them needs a separate code path, not just a wider
+version range.
 
 ## Installing
 
