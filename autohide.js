@@ -71,6 +71,8 @@ export class PanelAutohide {
         this._delayedHide = false;
         this._oldIgnoreHover = null;
 
+        // Every timeout id is mirrored here so disable() can drop them all.
+        this._timeouts = [];
         this._pointerWatchId = 0;
         this._barrierReleaseId = 0;
         this._enabled = false;
@@ -157,13 +159,11 @@ export class PanelAutohide {
         this._enabled = false;
         this._restoreUnredirect();
 
-        for (const name of ['_pointerWatchId', '_barrierReleaseId',
-            '_reassertId', '_overlapCheckId']) {
-            if (this[name]) {
-                GLib.source_remove(this[name]);
-                this[name] = 0;
-            }
-        }
+        for (const id of this._timeouts)
+            GLib.source_remove(id);
+        this._timeouts.length = 0;
+        this._overlapCheckId = this._pointerWatchId = 0;
+        this._barrierReleaseId = this._reassertId = 0;
 
         if (this._shieldId) {
             Main.screenShield.disconnect(this._shieldId);
@@ -195,6 +195,36 @@ export class PanelAutohide {
         }
     }
 
+    // --- timeouts ----------------------------------------------------------
+
+    // Sources are pruned as they finish, so disable() never hands a dead id
+    // to source_remove.
+    _addTimeout(interval, callback) {
+        const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, interval, () => {
+            const result = callback();
+            if (result === GLib.SOURCE_REMOVE)
+                this._forgetTimeout(id);
+            return result;
+        });
+        this._timeouts.push(id);
+        return id;
+    }
+
+    _forgetTimeout(id) {
+        const index = this._timeouts.indexOf(id);
+        if (index !== -1)
+            this._timeouts.splice(index, 1);
+    }
+
+    // Returns 0, so callers can clear their own field in the same statement.
+    _removeTimeout(id) {
+        if (id) {
+            GLib.source_remove(id);
+            this._forgetTimeout(id);
+        }
+        return 0;
+    }
+
     // --- struts ------------------------------------------------------------
 
     _releaseStrut() {
@@ -205,12 +235,11 @@ export class PanelAutohide {
     }
 
     _scheduleReassert() {
-        if (this._reassertId)
-            GLib.source_remove(this._reassertId);
+        this._reassertId = this._removeTimeout(this._reassertId);
 
         // On resume the monitor configuration is still settling, so an
         // immediate update just gets recomputed away.
-        this._reassertId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REASSERT_DELAY_MS, () => {
+        this._reassertId = this._addTimeout(REASSERT_DELAY_MS, () => {
             this._reassertId = 0;
             this._releaseStrut();
             this._queueOverlapCheck();
@@ -248,7 +277,7 @@ export class PanelAutohide {
         }
 
         this._checkOverlap();
-        this._overlapCheckId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, OVERLAP_CHECK_MS, () => {
+        this._overlapCheckId = this._addTimeout(OVERLAP_CHECK_MS, () => {
             this._checkOverlap();
             if (this._overlapPending) {
                 this._overlapPending = false;
@@ -389,10 +418,8 @@ export class PanelAutohide {
     }
 
     _startPointerWatch() {
-        if (this._pointerWatchId)
-            GLib.source_remove(this._pointerWatchId);
-
-        this._pointerWatchId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, POINTER_WATCH_MS, () => {
+        this._pointerWatchId = this._removeTimeout(this._pointerWatchId);
+        this._pointerWatchId = this._addTimeout(POINTER_WATCH_MS, () => {
             if (this._ignoreHover) {
                 this._pointerWatchId = 0;
                 return GLib.SOURCE_REMOVE;
@@ -514,10 +541,7 @@ export class PanelAutohide {
             onComplete: () => {
                 this._state = State.SHOWN;
 
-                if (this._barrierReleaseId) {
-                    GLib.source_remove(this._barrierReleaseId);
-                    this._barrierReleaseId = 0;
-                }
+                this._barrierReleaseId = this._removeTimeout(this._barrierReleaseId);
 
                 if (this._delayedHide) {
                     this._hide();
@@ -526,12 +550,11 @@ export class PanelAutohide {
 
                 // Release the barrier shortly after opening, with enough gap
                 // that the pointer does not slide straight past.
-                this._barrierReleaseId = GLib.timeout_add(
-                    GLib.PRIORITY_DEFAULT, BARRIER_RELEASE_MS, () => {
-                        this._barrierReleaseId = 0;
-                        this._removeBarrier();
-                        return GLib.SOURCE_REMOVE;
-                    });
+                this._barrierReleaseId = this._addTimeout(BARRIER_RELEASE_MS, () => {
+                    this._barrierReleaseId = 0;
+                    this._removeBarrier();
+                    return GLib.SOURCE_REMOVE;
+                });
             },
         });
     }
@@ -549,11 +572,7 @@ export class PanelAutohide {
                 this._state = State.HIDDEN;
                 this._restoreUnredirect();
 
-                if (this._barrierReleaseId) {
-                    GLib.source_remove(this._barrierReleaseId);
-                    this._barrierReleaseId = 0;
-                }
-
+                this._barrierReleaseId = this._removeTimeout(this._barrierReleaseId);
                 this._updateBarrier();
             },
         });
