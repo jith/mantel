@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="mantel">
+  <schema id="org.gnome.shell.extensions.mantel"
+          path="/org/gnome/shell/extensions/mantel/">
+    <key name="workspace-numbers" type="b">
+      <default>true</default>
+      <summary>Number the workspace indicator</summary>
+      <description>Replace the top bar's workspace dots with numbers that can be clicked to switch, and let Super+1…0 reach a workspace that does not exist yet by creating it.</description>
+    </key>
+    <key name="autohide" type="b">
+      <default>true</default>
+      <summary>Auto-hide the top bar</summary>
+      <description>Hide the top bar while a window overlaps it, and reveal it when the pointer pushes against the top edge of the screen.</description>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,22 @@
+/* No colour is set on the numbers: they inherit the panel's foreground, which
+   the theme flips between light and dark top bars. The active workspace is
+   marked with a neutral grey wash that reads on either. */
+.mantel-workspaces {
+  spacing: 2px;
+}
+
+.mantel-workspace {
+  min-width: 14px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.mantel-workspace:active {
+  background-color: rgba(127, 127, 127, 0.3);
+}
+
+.mantel-workspace:hover {
+  background-color: rgba(127, 127, 127, 0.18);
+}
