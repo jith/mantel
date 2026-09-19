@@ -1,39 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// Top-panel autohide that mirrors the Ubuntu Dock's own autohide.
+// Auto-hide for the top panel, using intellihide: the bar stays visible while
+// nothing overlaps it, and leaves only when a window needs the space.
 //
-// ATTRIBUTION: the behaviour here is derived from dash-to-dock
-// (ubuntu-dock@ubuntu.com, docking.js and intellihide.js), GPL-2.0-or-later.
-// No code was copied verbatim, but the algorithm, the state machine, the
-// overlap test, the barrier lifecycle and the timing constants all follow it
-// closely and deliberately. dash-to-dock's "or later" clause is what
-// permits this work to be distributed under GPL-3.0-or-later.
+// While enabled the panel stops reserving screen space for the whole session,
+// so windows keep full height and the bar floats over them — nothing resizes
+// on a reveal. The work area is re-asserted after resume and unlock, or
+// windows come back pushed down as though the bar still held its strip.
 //
-//
-// The behaviour, the constants and the awkward details are all taken from
-// ubuntu-dock@ubuntu.com (docking.js, intellihide.js) rather than invented,
-// because that code already survived the cases this kind of thing trips over.
-// The three that matter most, each of which was a bug here before:
-//
-//  * The barrier only exists while the panel is hidden, and is dropped ~100ms
-//    after it opens. A live barrier under an open panel is what traps the
-//    pointer at the screen edge.
-//
-//  * The barrier is removed entirely while a monitor is fullscreen. The dock's
-//    own comment: "otherwise the mouse can get trapped on monitor." This is
-//    also why reaching for a video player's controls no longer arms a reveal
-//    behind the panel the shell has hidden.
-//
-//  * PressureBarrier keeps pressure state between 'hit' and 'left'. Since the
-//    barrier is destroyed on every trigger, that state has to be reset by hand
-//    before re-arming, or the next reveal never fires.
-//
-// Intellihide, not plain autohide: the panel stays out while nothing overlaps
-// it. The panel also stops reserving screen space for the whole session, so
-// windows keep full height and nothing resizes when you peek — the dock does
-// the same in autohide mode. The work area is re-asserted after resume and
-// unlock, a failure mode other top-bar extensions are known for: windows come
-// back pushed down as though the bar still reserved its strip.
+// ATTRIBUTION: derived from dash-to-dock (ubuntu-dock@ubuntu.com, docking.js
+// and intellihide.js), GPL-2.0-or-later. No code was copied verbatim, but the
+// algorithm, state machine, overlap test, barrier lifecycle and timing
+// constants follow it closely. Its "or later" clause is what permits
+// redistribution here under GPL-3.0-or-later.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -45,19 +24,16 @@ import {PressureBarrier} from 'resource:///org/gnome/shell/ui/layout.js';
 
 const State = {HIDDEN: 0, SHOWING: 1, SHOWN: 2, HIDING: 3};
 
-// Every one of these is a dash-to-dock default, so both screen edges behave
-// identically where the dock is also in use.
-const PRESSURE_THRESHOLD = 100;     // pressure-threshold
-const SHOW_DELAY_MS = 250;          // show-delay — the PressureBarrier timeout
-const HIDE_DELAY_MS = 500;          // dock uses 200, but its box is roughly twice
-                                    // the panel's height, so 200 felt far too eager here
-const ANIMATION_MS = 200;           // animation-time
-const OVERLAP_CHECK_MS = 100;       // INTELLIHIDE_CHECK_INTERVAL
-const BARRIER_RELEASE_MS = 100;     // dock's post-show barrier removal
-const POINTER_WATCH_MS = 250;       // dock's _triggerTimeoutId interval
-// Hysteresis. The zone that KEEPS the panel open is deliberately larger than the
-// screen edge that opens it, so an overshoot while reaching for a 32px bar does
-// not dismiss it. The dock never needs this because its box is far larger.
+// dash-to-dock defaults, so both screen edges behave alike where it is in use.
+const PRESSURE_THRESHOLD = 100;
+const SHOW_DELAY_MS = 250;          // also the PressureBarrier timeout
+const HIDE_DELAY_MS = 500;          // dock uses 200; its box is twice this tall
+const ANIMATION_MS = 200;
+const OVERLAP_CHECK_MS = 100;
+const BARRIER_RELEASE_MS = 100;
+const POINTER_WATCH_MS = 250;
+// Hysteresis: the zone that keeps the panel open is larger than the edge that
+// opens it, so an overshoot toward a 32px bar does not dismiss it.
 const HOLD_MARGIN = 32;
 const REASSERT_DELAY_MS = 600;
 
@@ -129,24 +105,18 @@ export class PanelAutohide {
             'in-fullscreen-changed', () => {
                 this._updateBarrier();
 
-                // Entering: force-hide now. That branch of _updateVisibility
-                // returns before reading any window geometry, so it is safe
-                // mid-transition. Leaving: do nothing here — 'restacked' will
-                // refresh overlap once the window has settled. Reading
-                // geometry at this instant is what flickered elsewhere.
+                // Entering: force-hide. That branch returns before reading
+                // any window geometry, so it is safe mid-transition. Leaving:
+                // 'restacked' refreshes overlap once the window has settled.
                 if (this._isFullscreen())
                     this._updateVisibility();
             },
             this);
 
-        // Deliberately NOT listening for window_manager 'switch-workspace'.
-        // That fires as the switch begins, before the incoming workspace's
-        // window actors are mapped, so a synchronous overlap check there sees
-        // an empty workspace and shows the panel — then 'restacked' arrives
-        // with the windows up and hides it again. The dock only uses
-        // switch-workspace to redraw its icon list; for overlap it relies on
-        // 'restacked', whose own comment notes it is "included when the
-        // workspace is switched".
+        // Deliberately not listening for 'switch-workspace': it fires before
+        // the incoming workspace's actors are mapped, so a check there sees an
+        // empty workspace and shows the panel, then hides it again. 'restacked'
+        // covers workspace switches at a settled moment.
 
         // Focus can change without a restack when a window is always-on-top.
         Shell.WindowTracker.get_default().connectObject(
@@ -173,9 +143,8 @@ export class PanelAutohide {
                 this._trackWindow(win);
         }
 
-        // One signal, not four: active-changed covers lock, unlock and
-        // resume-while-locked, which is every path that can leave the work
-        // area stale.
+        // active-changed covers lock, unlock and resume-while-locked — every
+        // path that can leave the work area stale.
         this._shieldId = Main.screenShield.connect(
             'active-changed', () => this._scheduleReassert());
 
@@ -265,14 +234,13 @@ export class PanelAutohide {
             'unmanaged', () => {
                 win.disconnectObject(this);
                 this._trackedWindows.delete(win);
-                // No check here: the window is still listed at this point, and
-                // closing one always restacks, which does the real work.
+                // No check here: the window is still listed, and closing one
+                // always restacks.
             },
             this);
     }
 
-    // The dock's throttle: check now, then at most once per interval for as
-    // long as changes keep arriving.
+    // Check now, then at most once per interval while changes keep arriving.
     _queueOverlapCheck() {
         if (this._overlapCheckId) {
             this._overlapPending = true;
@@ -292,8 +260,7 @@ export class PanelAutohide {
     }
 
     _checkOverlap() {
-        // The overview owns the panel while it is up, so overlap is irrelevant
-        // until it goes away — the dock disables intellihide outright here.
+        // The overview owns the panel while it is up, so overlap is moot.
         if (!this._enabled || Main.overview.visibleTarget)
             return;
 
@@ -329,14 +296,10 @@ export class PanelAutohide {
             if (!win || !this._handledWindow(win))
                 continue;
 
-            // A window is only in the way once it is actually on screen.
             // mutter emits 'window-created' before the actor is mapped and
-            // before placement has run, so the frame rect at that moment is
-            // whatever the client asked for — frequently flush against the
-            // top, which read as an overlap and hid the panel for the split
-            // second until placement moved the window to its real spot. The
-            // dock never sees this because its strip is a short band on the
-            // left, nowhere near where an unplaced window lands.
+            // before placement runs, so the frame rect is whatever the client
+            // asked for — often flush against the top. Not on screen yet means
+            // not in the way.
             if (!actor.visible)
                 continue;
 
@@ -421,9 +384,7 @@ export class PanelAutohide {
             return;
 
         // _show() starts the pointer watch itself: pressure only fires while
-        // hidden, which means a window overlaps, which means _ignoreHover is
-        // false. That covers the dock's _onPressureSensed safety net — the
-        // pointer can leave without ever reaching the panel.
+        // hidden, so _ignoreHover is false here.
         this._show();
     }
 
@@ -437,12 +398,9 @@ export class PanelAutohide {
                 return GLib.SOURCE_REMOVE;
             }
 
-            // Coming back cancels a pending hide, the way the dock's
-            // _box.hover does. Without this the watch removed itself the
-            // moment _hide() ran, leaving ~400ms of still-visible panel
-            // (hide delay + animation) that nothing was monitoring — move
-            // back toward the bar in that window and it left anyway, which
-            // is what the flicker was.
+            // Coming back cancels a pending hide, as the dock's _box.hover
+            // does. The panel stays on screen for hide delay + animation after
+            // _hide(), and that window has to stay monitored.
             if (this._pointerOverPanel(HOLD_MARGIN)) {
                 if (this._state === State.HIDING || this._delayedHide)
                     this._show();
@@ -489,10 +447,8 @@ export class PanelAutohide {
 
         this._ignoreHover = false;
 
-        // Strict here, like the dock's !this._box.hover: a window moving into
-        // the strip must hide the panel unless the pointer is genuinely on it.
-        // Using the lenient zone here meant a window dragged near the top never
-        // hid the panel while the pointer sat anywhere in the top band.
+        // Strict, like the dock's !this._box.hover: a window moving into the
+        // strip hides the panel unless the pointer is genuinely on it.
         if (!this._pointerOverPanel() && !Main.panel.menuManager?.activeMenu)
             this._hideNow();
         else
@@ -517,11 +473,9 @@ export class PanelAutohide {
         if (this._state === State.HIDDEN || this._state === State.HIDING)
             this._animateIn(0);
 
-        // Anything shown for a hover-ish reason must carry a watchdog. Without
-        // this, a panel left SHOWN with _ignoreHover false and no watch running
-        // can never be put away again: _updateVisibility only runs when the
-        // overlap status changes, and that will not change on its own.
-        // Verified live — this is what left the bar stuck open after fullscreen.
+        // Anything shown for a hover-ish reason needs a watchdog: a panel left
+        // SHOWN with _ignoreHover false and no watch can never be put away,
+        // since _updateVisibility only runs when overlap changes.
         if (!this._ignoreHover)
             this._startPointerWatch();
     }
@@ -570,9 +524,8 @@ export class PanelAutohide {
                     return;
                 }
 
-                // Drop the barrier a moment after opening so the pointer is
-                // released, with enough of a gap that it does not slide
-                // straight past and re-hide immediately.
+                // Release the barrier shortly after opening, with enough gap
+                // that the pointer does not slide straight past.
                 this._barrierReleaseId = GLib.timeout_add(
                     GLib.PRIORITY_DEFAULT, BARRIER_RELEASE_MS, () => {
                         this._barrierReleaseId = 0;
@@ -626,9 +579,8 @@ export class PanelAutohide {
         return !!Main.layoutManager.primaryMonitor?.inFullscreen;
     }
 
-    // margin 0 is the strict test — the pointer is genuinely on the panel, the
-    // equivalent of the dock's _box.hover. HOLD_MARGIN is the lenient one, used
-    // only to stop a revealed panel flickering away on a small overshoot.
+    // margin 0 is strict — genuinely on the panel, the dock's _box.hover.
+    // HOLD_MARGIN is lenient, only to stop a revealed panel flickering away.
     _pointerOverPanel(margin = 0) {
         const monitor = Main.layoutManager.primaryMonitor;
         if (!monitor)
