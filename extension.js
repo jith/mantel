@@ -49,13 +49,27 @@ export default class MantelExtension extends Extension {
         if (this[feature.field])
             return;
 
+        let instance = null;
+
         try {
-            const instance = feature.create();
+            instance = feature.create();
             instance.enable();
             this[feature.field] = instance;
         } catch (e) {
-            this[feature.field] = null;
             console.error(`Mantel: ${feature.key} failed to start: ${e}`);
+
+            // enable() may have got partway before throwing — released the
+            // panel's strut, connected signals, armed a timer. Forgetting the
+            // instance here would strand all of it for the rest of the
+            // session, so unwind before giving up. Both features tolerate
+            // disable() on a half-built instance.
+            try {
+                instance?.disable();
+            } catch (cleanupError) {
+                console.error(`Mantel: ${feature.key} left state behind: ${cleanupError}`);
+            }
+
+            this[feature.field] = null;
         }
     }
 
