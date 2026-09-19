@@ -8,6 +8,5 @@
   "url": "https://github.com/jith/mantel",
   "settings-schema": "org.gnome.shell.extensions.mantel",
   "gettext-domain": "mantel",
-  "version-name": "1.0",
-  "version": 1
+  "version-name": "1.1"
 }
