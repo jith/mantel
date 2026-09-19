@@ -1,7 +1,7 @@
 {
   "uuid": "mantel@jith.github.io",
   "name": "Mantel",
-  "description": "Two things the GNOME top bar could do better, each optional.\n\n• Workspace numbers — replaces the top bar's anonymous workspace dots with numbers. Click one to switch. Super+1…0 jumps straight to a workspace, creating it if it does not exist yet, and the bottom-centre workspace switcher popup is gone.\n\n• Auto-hide the top bar — the bar stays out of the way while a window needs the space and comes back when you push the pointer at the top edge. It follows the same intellihide rules as the Ubuntu Dock: visible when nothing overlaps it, hidden when something does. Windows keep the full screen height, so nothing resizes when you peek.\n\nEither feature can be turned off on its own in Preferences.",
+  "description": "Numbered workspaces in the top bar, and a top bar that gets out of the way. Use either, or both.\n\nWORKSPACE NUMBERS\nSee which workspace you are on at a glance, instead of counting dots.\n• Click a number to switch to that workspace\n• Super+1 to Super+0 jumps straight there, and creates the workspace if it does not exist yet\n• The workspace switcher popup no longer appears, since the top bar already shows where you are\n\nAUTO-HIDE THE TOP BAR\nThe bar stays visible while nothing is in its way, and slides away when a window needs the room. Push the pointer against the top edge of the screen to bring it back. It stays put in the overview and while a menu is open.\n\nWhile auto-hide is on, windows use the full height of the screen and the bar floats above them, so nothing resizes when you peek at the clock.\n\nBoth features can be turned off individually in Preferences.",
   "shell-version": [
     "50"
   ],
