@@ -20,3 +20,10 @@
 .mantel-workspace:hover {
   background-color: rgba(127, 127, 127, 0.18);
 }
+
+/* Nothing here is drawn: the outline is traced from the window itself, and
+   this is where it reads its colour from. It follows the accent chosen in
+   Settings → Appearance. */
+.mantel-focus-outline {
+  border-color: -st-accent-color;
+}

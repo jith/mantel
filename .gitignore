@@ -3,3 +3,11 @@ schemas/gschemas.compiled
 
 # Packed extension
 *.shell-extension.zip
+.tree-under-test.mjs
+.rules-under-test.mjs
+.outline-under-test.mjs
+.borrowed-under-test.mjs
+.prefs-under-test.js
+.float-under-test.js
+.general-under-test.js
+.extension-under-test.mjs

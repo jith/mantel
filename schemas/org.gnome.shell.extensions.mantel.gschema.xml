@@ -12,5 +12,334 @@
       <summary>Auto-hide the top bar</summary>
       <description>Hide the top bar while a window overlaps it, and reveal it when the pointer pushes against the top edge of the screen.</description>
     </key>
+    <key name="auto-tile" type="b">
+      <default>false</default>
+      <summary>Tile windows as they open</summary>
+      <description>Give the first window on a workspace the whole of it, and split the focused window to make room for each one after that. Minimize and maximize lose their title bar buttons and their shortcuts while it is on, and get them back when it is switched off; a tiled window that maximizes anyway floats above the others until it is unmaximized, and then takes its tile back.</description>
+    </key>
+    <key name="float-apps" type="as">
+      <default>['org.gnome.Calculator', 'gnome-calculator', 'org.gnome.Characters', 'org.gnome.clocks', 'org.gnome.Weather', 'org.gnome.font-viewer', 'org.gnome.Extensions', 'org.gnome.Shell.Extensions', 'org.gnome.NautilusPreviewer', 'org.gnome.Loupe', 'org.gnome.eog', 'org.gnome.Papers', 'org.gnome.Evince', 'org.gnome.Showtime', 'org.gnome.Totem', 'net.nokyan.Resources', 'gnome-system-monitor', 'org.gnome.SystemMonitor', 'org.pulseaudio.pavucontrol', 'blueman-manager', 'nm-connection-editor', 'mpv', 'imv', '1password', 'com.onepassword.OnePassword', 'bitwarden', 'localsend*', 'steam']</default>
+      <summary>Apps that open floating</summary>
+      <description>Windows of these apps open floating instead of tiled, in front of the layout. Each entry is an app ID — the name of its .desktop file without the extension, or the window's app ID — matched ignoring case; an entry ending in * matches every ID starting with the rest. The float key still moves a window into the layout or out of it.</description>
+    </key>
+    <key name="focus-follows-mouse" type="b">
+      <default>true</default>
+      <summary>Focus follows the mouse</summary>
+      <description>Focus the window under the pointer, without raising it, while windows are tiled. GNOME's focus mode is set to sloppy meanwhile, and handed back when this or auto-tiling is switched off.</description>
+    </key>
+    <key name="debug" type="b">
+      <default>false</default>
+      <summary>Log tiling decisions</summary>
+      <description>Write every layout decision to the journal, for reporting a problem. Off, only errors are logged.</description>
+    </key>
+    <key name="focus-left" type="as">
+      <default>['&lt;Super&gt;Left']</default>
+      <summary>Move focus left</summary>
+      <description>Focus the nearest window left of the focused one. Past the edge of the layout it goes to the monitor that way; it does not wrap around.</description>
+    </key>
+    <key name="focus-right" type="as">
+      <default>['&lt;Super&gt;Right']</default>
+      <summary>Move focus right</summary>
+      <description>Focus the nearest window right of the focused one. Past the edge of the layout it goes to the monitor that way; it does not wrap around.</description>
+    </key>
+    <key name="focus-up" type="as">
+      <default>['&lt;Super&gt;Up']</default>
+      <summary>Move focus up</summary>
+      <description>Focus the nearest window above the focused one. Past the edge of the layout it goes to the monitor that way; it does not wrap around.</description>
+    </key>
+    <key name="focus-down" type="as">
+      <default>['&lt;Super&gt;Down']</default>
+      <summary>Move focus down</summary>
+      <description>Focus the nearest window below the focused one. Past the edge of the layout it goes to the monitor that way; it does not wrap around.</description>
+    </key>
+    <key name="swap-left" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;Left']</default>
+      <summary>Swap with the window left</summary>
+      <description>Exchange the focused window with the nearest one left of it, leaving the shape of the layout alone; past its edge, with a tiled window on the monitor that way, or into that monitor's layout. Focus follows the window that moved.</description>
+    </key>
+    <key name="swap-right" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;Right']</default>
+      <summary>Swap with the window right</summary>
+      <description>Exchange the focused window with the nearest one right of it, leaving the shape of the layout alone; past its edge, with a tiled window on the monitor that way, or into that monitor's layout. Focus follows the window that moved.</description>
+    </key>
+    <key name="swap-up" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;Up']</default>
+      <summary>Swap with the window up</summary>
+      <description>Exchange the focused window with the nearest one above it, leaving the shape of the layout alone; past its edge, with a tiled window on the monitor that way, or into that monitor's layout. Focus follows the window that moved.</description>
+    </key>
+    <key name="swap-down" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;Down']</default>
+      <summary>Swap with the window down</summary>
+      <description>Exchange the focused window with the nearest one below it, leaving the shape of the layout alone; past its edge, with a tiled window on the monitor that way, or into that monitor's layout. Focus follows the window that moved.</description>
+    </key>
+    <key name="toggle-float" type="as">
+      <default>['&lt;Super&gt;t']</default>
+      <summary>Float the focused window</summary>
+      <description>Take the focused window out of the tiled layout, restoring the size it had before it was tiled, or put it back in. The rest of the layout closes over the space it leaves.</description>
+    </key>
+    <key name="toggle-maximize" type="as">
+      <default>['&lt;Super&gt;&lt;Alt&gt;f']</default>
+      <summary>Maximize the focused window</summary>
+      <description>Maximize the focused window over the layout, or put it back. A maximized tiled window floats above the others and keeps its tile, which it takes back when it is unmaximized.</description>
+    </key>
+    <key name="toggle-split" type="as">
+      <default>['&lt;Super&gt;j']</default>
+      <summary>Flip the split the window sits in</summary>
+      <description>Turn the division holding the focused window from side by side into stacked, or back.</description>
+    </key>
+    <key name="toggle-pseudo" type="as">
+      <default>['&lt;Super&gt;&lt;Alt&gt;p']</default>
+      <summary>Pseudo-tile the focused window</summary>
+      <description>Keep the focused window at the size it had before it was tiled, centred in its share of the layout and scaled down to fit if the share is smaller. Again gives it the whole share back.</description>
+    </key>
+    <key name="toggle-pop" type="as">
+      <default>['&lt;Super&gt;&lt;Alt&gt;o']</default>
+      <summary>Pop the focused window out</summary>
+      <description>Lift the focused window out of the layout at 1300×900, centred, in front of every other window and on every workspace. Again puts it back into the layout.</description>
+    </key>
+    <key name="scratchpad" type="as">
+      <default>['&lt;Super&gt;s']</default>
+      <summary>Show or hide the scratchpad</summary>
+      <description>Bring the windows put away in the scratchpad over the current workspace, or put them away again. Switching workspace puts them away too.</description>
+    </key>
+    <key name="to-scratchpad" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;&lt;Alt&gt;s']</default>
+      <summary>Put the focused window in the scratchpad</summary>
+      <description>Take the focused window out of the layout and put it away in the scratchpad. Floating it back in with the float key returns it to the layout.</description>
+    </key>
+    <key name="resize-left" type="as">
+      <default>['&lt;Super&gt;minus']</default>
+      <summary>Move the edge beside the focused window left</summary>
+      <description>Move the nearest division beside the focused window 100 pixels left, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 100 pixels narrower instead.</description>
+    </key>
+    <key name="resize-right" type="as">
+      <default>['&lt;Super&gt;equal']</default>
+      <summary>Move the edge beside the focused window right</summary>
+      <description>Move the nearest division beside the focused window 100 pixels right, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 100 pixels wider instead.</description>
+    </key>
+    <key name="resize-up" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;minus']</default>
+      <summary>Move the edge beside the focused window up</summary>
+      <description>Move the nearest division beside the focused window 100 pixels up, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 100 pixels shorter instead.</description>
+    </key>
+    <key name="resize-down" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;equal']</default>
+      <summary>Move the edge beside the focused window down</summary>
+      <description>Move the nearest division beside the focused window 100 pixels down, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 100 pixels taller instead.</description>
+    </key>
+    <key name="resize-left-little" type="as">
+      <default>['&lt;Super&gt;&lt;Alt&gt;minus']</default>
+      <summary>Move the edge beside the focused window left a little</summary>
+      <description>Move the nearest division beside the focused window 25 pixels left, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 25 pixels narrower instead.</description>
+    </key>
+    <key name="resize-right-little" type="as">
+      <default>['&lt;Super&gt;&lt;Alt&gt;equal']</default>
+      <summary>Move the edge beside the focused window right a little</summary>
+      <description>Move the nearest division beside the focused window 25 pixels right, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 25 pixels wider instead.</description>
+    </key>
+    <key name="resize-up-little" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;&lt;Alt&gt;minus']</default>
+      <summary>Move the edge beside the focused window up a little</summary>
+      <description>Move the nearest division beside the focused window 25 pixels up, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 25 pixels shorter instead.</description>
+    </key>
+    <key name="resize-down-little" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;&lt;Alt&gt;equal']</default>
+      <summary>Move the edge beside the focused window down a little</summary>
+      <description>Move the nearest division beside the focused window 25 pixels down, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 25 pixels taller instead.</description>
+    </key>
+    <key name="resize-left-lot" type="as">
+      <default>['&lt;Super&gt;&lt;Control&gt;minus']</default>
+      <summary>Move the edge beside the focused window left a lot</summary>
+      <description>Move the nearest division beside the focused window 300 pixels left, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 300 pixels narrower instead.</description>
+    </key>
+    <key name="resize-right-lot" type="as">
+      <default>['&lt;Super&gt;&lt;Control&gt;equal']</default>
+      <summary>Move the edge beside the focused window right a lot</summary>
+      <description>Move the nearest division beside the focused window 300 pixels right, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 300 pixels wider instead.</description>
+    </key>
+    <key name="resize-up-lot" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;&lt;Control&gt;minus']</default>
+      <summary>Move the edge beside the focused window up a lot</summary>
+      <description>Move the nearest division beside the focused window 300 pixels up, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 300 pixels shorter instead.</description>
+    </key>
+    <key name="resize-down-lot" type="as">
+      <default>['&lt;Super&gt;&lt;Shift&gt;&lt;Control&gt;equal']</default>
+      <summary>Move the edge beside the focused window down a lot</summary>
+      <description>Move the nearest division beside the focused window 300 pixels down, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 300 pixels taller instead.</description>
+    </key>
+    <!-- Retired: nothing binds these any more. They stay because a session
+         still running an older Mantel reads them whenever it is enabled
+         again — every screen unlock — and GSettings aborts the whole shell
+         on a key its schema does not have. -->
+    <key name="grow" type="as">
+      <default>[]</default>
+      <summary>Retired: grow the focused window</summary>
+      <description>No longer used. Replaced by the resize shortcuts.</description>
+    </key>
+    <key name="shrink" type="as">
+      <default>[]</default>
+      <summary>Retired: shrink the focused window</summary>
+      <description>No longer used. Replaced by the resize shortcuts.</description>
+    </key>
+    <key name="gap" type="i">
+      <default>6</default>
+      <range min="0" max="64"/>
+      <summary>Space between tiled windows</summary>
+      <description>Space left between neighbouring windows, multiplied by the monitor's scale factor. The layout as a whole sits flush with the screen, apart from the sliver each edge keeps back so that the focused window's outline has somewhere to be drawn.</description>
+    </key>
+    <key name="border" type="i">
+      <default>2</default>
+      <range min="0" max="32"/>
+      <summary>Focused window outline</summary>
+      <description>Logical pixels of outline drawn around the focused window, and the room kept for it at the edge of the screen, since it is drawn outside the window rather than inside. Zero leaves the layout flush and draws nothing. A window with the workspace to itself is left flush and unmarked either way, since there is nothing to tell it apart from. Drawn in the accent colour; the outline of Ubuntu Tiling Assistant's focus hint is switched off meanwhile.</description>
+    </key>
+    <!-- What auto-tiling changed outside Mantel, kept on disk so it can be
+         handed back even after a logout, which gives no chance to do it
+         then. Unset means nothing is owed; a value set here is one on loan. -->
+    <key name="borrowed-button-layout" type="s">
+      <default>''</default>
+      <summary>Title bar buttons to hand back</summary>
+      <description>The title bar button layout from before auto-tiling took minimize and maximize out of it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-action-double-click-titlebar" type="s">
+      <default>''</default>
+      <summary>Title bar double click to hand back</summary>
+      <description>What a double click on a title bar did before auto-tiling stopped it maximizing or minimizing, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-focus-hint" type="i">
+      <default>0</default>
+      <summary>Tiling Assistant focus hint to hand back</summary>
+      <description>Ubuntu Tiling Assistant's focus hint from before auto-tiling switched it off, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-minimize" type="as">
+      <default>[]</default>
+      <summary>GNOME's minimize shortcut to hand back</summary>
+      <description>GNOME's minimize shortcut from before auto-tiling unbound it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-maximize" type="as">
+      <default>[]</default>
+      <summary>GNOME's maximize shortcut to hand back</summary>
+      <description>GNOME's maximize shortcut from before auto-tiling unbound it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-toggle-maximized" type="as">
+      <default>[]</default>
+      <summary>GNOME's toggle-maximize shortcut to hand back</summary>
+      <description>GNOME's toggle-maximize shortcut from before auto-tiling unbound it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-maximize-horizontally" type="as">
+      <default>[]</default>
+      <summary>GNOME's maximize-horizontally shortcut to hand back</summary>
+      <description>GNOME's maximize-horizontally shortcut from before auto-tiling unbound it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-maximize-vertically" type="as">
+      <default>[]</default>
+      <summary>GNOME's maximize-vertically shortcut to hand back</summary>
+      <description>GNOME's maximize-vertically shortcut from before auto-tiling unbound it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-tile-maximize" type="as">
+      <default>[]</default>
+      <summary>Tiling Assistant's maximize shortcut to hand back</summary>
+      <description>Tiling Assistant's maximize shortcut from before auto-tiling unbound it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-tile-maximize-horizontally" type="as">
+      <default>[]</default>
+      <summary>Tiling Assistant's maximize-horizontally shortcut to hand back</summary>
+      <description>Tiling Assistant's maximize-horizontally shortcut from before auto-tiling unbound it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-tile-maximize-vertically" type="as">
+      <default>[]</default>
+      <summary>Tiling Assistant's maximize-vertically shortcut to hand back</summary>
+      <description>Tiling Assistant's maximize-vertically shortcut from before auto-tiling unbound it, put back when auto-tiling is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-unmaximize" type="as">
+      <default>[]</default>
+      <summary>GNOME's unmaximize shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-toggle-tiled-left" type="as">
+      <default>[]</default>
+      <summary>GNOME's tile-left shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-toggle-tiled-right" type="as">
+      <default>[]</default>
+      <summary>GNOME's tile-right shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-tile-left-half" type="as">
+      <default>[]</default>
+      <summary>Tiling Assistant's tile-left shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-tile-right-half" type="as">
+      <default>[]</default>
+      <summary>Tiling Assistant's tile-right shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-restore-window" type="as">
+      <default>[]</default>
+      <summary>Tiling Assistant's restore shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-default-move-mode" type="i">
+      <default>0</default>
+      <summary>Tiling Assistant's drag tiling to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-edge-tiling" type="b">
+      <default>false</default>
+      <summary>GNOME's edge tiling to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-center-new-windows" type="b">
+      <default>false</default>
+      <summary>GNOME's placement of new windows to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-focus-mode" type="s">
+      <default>''</default>
+      <summary>GNOME's focus mode to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-resize-with-right-button" type="b">
+      <default>false</default>
+      <summary>GNOME's resize button to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-move-to-monitor-left" type="as">
+      <default>[]</default>
+      <summary>GNOME's move-to-monitor-left shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-move-to-monitor-right" type="as">
+      <default>[]</default>
+      <summary>GNOME's move-to-monitor-right shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-move-to-monitor-up" type="as">
+      <default>[]</default>
+      <summary>GNOME's move-to-monitor-up shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-move-to-monitor-down" type="as">
+      <default>[]</default>
+      <summary>GNOME's move-to-monitor-down shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-toggle-quick-settings" type="as">
+      <default>[]</default>
+      <summary>GNOME's quick settings shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-magnifier-zoom-in" type="as">
+      <default>[]</default>
+      <summary>GNOME's zoom in shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
+    <key name="borrowed-magnifier-zoom-out" type="as">
+      <default>[]</default>
+      <summary>GNOME's zoom out shortcut to hand back</summary>
+      <description>Changed while auto-tiling runs, and put back when it is switched off. Not for editing.</description>
+    </key>
   </schema>
 </schemalist>

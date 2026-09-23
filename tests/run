@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Exercise every module off-shell: its imports are stripped and replaced with
+# stubs, so it runs in node (or gjs, for the preferences) without a logout per
+# attempt.
+set -euo pipefail
+cd "$(dirname "$0")"
+trap 'rm -f ./.rules-under-test.mjs ./.tree-under-test.mjs ./.outline-under-test.mjs ./.borrowed-under-test.mjs ./.prefs-under-test.js ./.float-under-test.js ./.general-under-test.js ./.extension-under-test.mjs' EXIT
+
+cp ../borrowed.js ./.borrowed-under-test.mjs
+
+{ echo "import {Meta, Shell} from '$PWD/stubs.mjs';"
+  sed -E '/^import .*;$/d' ../rules.js; } > ./.rules-under-test.mjs
+
+{ echo "import {GDesktopEnums, GLib, Gio, Meta, Mtk, Main, Shell, global, FocusOutline} from '$PWD/stubs.mjs';"
+  echo "import {BorrowedSetting} from '$PWD/.borrowed-under-test.mjs';"
+  echo "import {BORROWED_SHORTCUTS, unbind} from '$PWD/../shortcuts.js';"
+  echo "import {floatRule, followsWorkspaces, minSize, tileable} from '$PWD/.rules-under-test.mjs';"
+  sed -E '/^import .*;$/d' ../tiling.js; } > ./.tree-under-test.mjs
+
+node ./tree.test.mjs
+
+{ echo "const {Main, Extension, WorkspaceNumbers, PanelAutohide, AutoTile} = globalThis.extensionStubs;"
+  sed -E '/^import .*;$/d' ../extension.js; } > ./.extension-under-test.mjs
+node ./extension.test.mjs
+node ./borrowed.test.mjs
+
+{ echo "import {Clutter, Cogl, GObject, Meta, Shell, St, global} from '$PWD/outline-stubs.mjs';"
+  sed -E '/^import .*;$/d' ../outline.js; } > ./.outline-under-test.mjs
+node ./outline.test.mjs
+
+# The preferences pages run against the real GTK and libadwaita, which needs
+# gjs and a display but no shell. Their one shell import, gettext, is stubbed.
+if command -v gjs >/dev/null && [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+    sed -E "s|^import \{gettext as _\} from .*$|const _ = s => s;|" \
+        ../prefs/shortcutsPage.js > ./.prefs-under-test.js
+    GSETTINGS_BACKEND=memory gjs -m ./prefs.test.js
+    sed -E "s|^import \{gettext as _\} from .*$|const _ = s => s;|" \
+        ../prefs/floatApps.js > ./.float-under-test.js
+    GSETTINGS_BACKEND=memory gjs -m ./floatApps.test.js
+    { echo "const _ = s => s; class ExtensionPreferences { getSettings() { return globalThis.mantelSettings; } }"
+      sed -E -e '/^import \{ExtensionPreferences/,/;$/d' \
+          -e "s|'./prefs/floatApps.js'|'./.float-under-test.js'|; s|'./prefs/shortcutsPage.js'|'./.prefs-under-test.js'|" \
+          ../prefs.js; } > ./.general-under-test.js
+    GSETTINGS_BACKEND=memory gjs -m ./general.test.js
+else
+    echo "  skipped the preferences pages: needs gjs and a display"
+fi

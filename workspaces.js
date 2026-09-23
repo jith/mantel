@@ -3,21 +3,12 @@
 // Numbered workspace indicator, and workspace switching that can reach a
 // workspace that does not exist yet.
 //
-// The top bar's indicator: ui/panel.js builds an ActivitiesButton holding a
-// WorkspaceIndicators box of WorkspaceDot actors. panel.js exports neither
-// class — both are module-local consts — so they cannot be imported,
-// subclassed or patched. The live actor is reachable through
-// Main.panel.statusArea instead, so a numbered box goes in there and the dots
-// are hidden. It has to be inserted at index 0: PanelMenu.ButtonBox sizes and
-// allocates get_first_child() and nothing else, so a second child would never
-// be laid out.
-//
-// Switching: every workspace keybinding is routed through one handler that
-// WindowManager installs with setCustomKeybindingHandler, so replacing that
-// handler covers all of them at once. The stock one bails out when the target
-// index is past n_workspaces, and shows the bottom-centre switcher OSD on
-// every switch. This one grows the list to reach the target, and shows no
-// popup — the top bar already says which workspace is active.
+// panel.js does not export its workspace indicator classes, so the numbers go
+// into the live ActivitiesButton from Main.panel.statusArea, at index 0:
+// PanelMenu.ButtonBox only lays out its first child. Every workspace
+// keybinding goes through the one handler WindowManager installs with
+// setCustomKeybindingHandler; replacing it lets a switch create the target
+// workspace, and drops the switcher popup the top bar makes redundant.
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -192,11 +183,9 @@ export class WorkspaceNumbers {
             this._dots.hide();
         }
 
-        // ActivitiesButton toggles the overview from its own ClickGesture
-        // (panel.js assigns it over the base class's menu gesture), which
-        // would fire on top of a click on a number. Park it while we own this
-        // spot; PanelMenu.Button uses the same set_enabled pattern for the
-        // same reason. Scrolling the button still changes workspace.
+        // The button's own ClickGesture would open the overview on top of a
+        // click on a number, so it is disabled meanwhile, as PanelMenu.Button
+        // does. Scrolling still changes workspace.
         this._overviewGesture = activities?._clickGesture ?? null;
         this._overviewGesture?.set_enabled(false);
 

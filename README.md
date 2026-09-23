@@ -1,9 +1,10 @@
 # Mantel
 
-Numbered workspaces and a dock-style auto-hiding top bar for GNOME Shell.
+Numbered workspaces, a dock-style auto-hiding top bar, and Hyprland-style
+auto-tiling for GNOME Shell.
 
-Two things the GNOME top bar could do better. Either can be turned off on its
-own, so you can take one and leave the other.
+Each feature can be turned off on its own, so you can take one and leave the
+others.
 
 ## Workspace numbers
 
@@ -42,16 +43,70 @@ That is deliberate: it means nothing resizes when you peek at the clock. The
 trade-off is that windows are now free to sit flush against the top of the
 screen, and new windows may be placed there.
 
+## Auto-tiling
+
+Windows are laid out as they open, following Hyprland's *dwindle* layout:
+the first window on a workspace takes all of it, and each new window splits
+the window that had focus, along its longer side. Closing a window hands its
+space back to the window it was split from.
+
+- **Floating apps.** Small utility apps (Calculator, Characters, Clocks,
+  image and video viewers, …) open floating in front of the layout. The list
+  is in **Settings → Floating Apps**; `Super`+`T` moves any window in or out.
+  Any app window the layout cannot take, such as one that cannot be resized
+  or a dialog, floats too. Floating windows always stay above tiled ones.
+- **Minimum sizes are respected.** A window is never given less room than it
+  will take. One that cannot fit beside the others either way round opens
+  floating instead of being drawn over them.
+- **Maximize floats.** GNOME's title bar buttons and shortcuts for minimize
+  and maximize are removed while tiling (and given back afterwards), and a
+  double click on a title bar does nothing. Apps that draw their own title
+  bar — Flutter apps such as Ubuntu's App Center and Security
+  Center, Electron apps such as VS Code — keep their buttons. Maximizing a
+  tiled window, or `Super`+`Alt`+`F`, floats it over its tile, above the
+  others; unmaximizing it, or `Super`+`T`, puts it back in the same tile.
+  Minimizing takes a window out of the layout until it is restored.
+  Focusing a tiled window under a maximized one maximizes it in that one's
+  place.
+- **Dragging** a tiled window onto another swaps the two; dragging a shared
+  edge moves it for both neighbours.
+- **Focus follows the mouse**, without raising the window (GNOME's *sloppy*
+  focus, handed back afterwards). Keys that move focus or windows take the
+  pointer along, so focus stays where the keys put it. It can be switched off.
+- Focus, swap, resize, split, pseudo-tile, pop-out and scratchpad keys are
+  listed, and can be changed, in **Settings → Shortcuts**. Focus and swap
+  carry on to the next monitor past the edge of the layout; resize grows or
+  shrinks a floating window. GNOME's (and Ubuntu Tiling Assistant's)
+  shortcuts that would maximize or tile a window are switched off meanwhile,
+  as are edge tiling and its drag previews; GNOME's quick settings, zoom and
+  move-to-monitor shortcuts give up only the chords Mantel uses by default.
+  All are handed back when auto-tiling is turned off.
+- Picture-in-picture opens small in the top right corner, on every workspace.
+- The layout survives the lock screen.
+
+It is off by default.
+
+To see why a window was tiled or floated, turn on logging and watch the
+journal:
+
+```sh
+gsettings --schemadir ~/.local/share/gnome-shell/extensions/mantel@jith.github.io/schemas \
+  set org.gnome.shell.extensions.mantel debug true
+journalctl -f -o cat /usr/bin/gnome-shell | grep Mantel
+```
+
 ## Settings
 
-Two switches, in **Extensions → Mantel → Settings**:
+In **Extensions → Mantel → Settings**:
 
 | Setting | Default |
 | --- | --- |
 | Workspace numbers | on |
 | Auto-hide the top bar | on |
+| Tile windows as they open | off |
+| Focus follows the mouse, while tiling | on |
 
-Both take effect immediately — no logout needed to toggle them.
+Each takes effect immediately — no logout needed to toggle it.
 
 ## Requirements
 
@@ -75,6 +130,12 @@ cd mantel
 gnome-extensions pack --force \
   --extra-source=autohide.js \
   --extra-source=workspaces.js \
+  --extra-source=tiling.js \
+  --extra-source=rules.js \
+  --extra-source=outline.js \
+  --extra-source=borrowed.js \
+  --extra-source=shortcuts.js \
+  --extra-source=prefs \
   --schema=schemas/org.gnome.shell.extensions.mantel.gschema.xml
 gnome-extensions install --force mantel@jith.github.io.shell-extension.zip
 ```

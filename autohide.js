@@ -98,11 +98,16 @@ export class PanelAutohide {
             this._queueOverlapCheck();
         }, this);
 
-        this._panelBox.connectObject('notify::height', () => {
-            if (this._state === State.HIDDEN)
-                this._panelBox.translation_y = -this._panelHeight();
-            this._applySearchPadding();
-        }, this);
+        this._panelBox.connectObject(
+            'notify::height', () => {
+                if (this._state === State.HIDDEN)
+                    this._panelBox.translation_y = -this._panelHeight();
+                this._applySearchPadding();
+            },
+            // At logout the shell destroys the panel while windows are still
+            // being unmanaged, and each of them would ask for its height.
+            'destroy', () => this._stopWatching(),
+            this);
 
         global.display.connectObject(
             'window-created', (_d, win) => {
@@ -164,26 +169,7 @@ export class PanelAutohide {
     disable() {
         this._enabled = false;
         this._restoreUnredirect();
-
-        for (const id of this._timeouts)
-            GLib.source_remove(id);
-        this._timeouts.length = 0;
-        this._overlapCheckId = this._pointerWatchId = 0;
-        this._barrierReleaseId = this._reassertId = 0;
-
-        if (this._shieldId) {
-            Main.screenShield.disconnect(this._shieldId);
-            this._shieldId = 0;
-        }
-
-        for (const win of this._trackedWindows)
-            win.disconnectObject(this);
-        this._trackedWindows.clear();
-
-        Main.layoutManager.disconnectObject(this);
-        Main.overview.disconnectObject(this);
-        global.display.disconnectObject(this);
-        Shell.WindowTracker.get_default().disconnectObject(this);
+        this._stopWatching();
         this._panelBox.disconnectObject(this);
 
         this._removeBarrier();
@@ -203,18 +189,34 @@ export class PanelAutohide {
         }
     }
 
+    // Everything that can lead to the panel being measured or moved.
+    _stopWatching() {
+        for (const id of this._timeouts)
+            GLib.source_remove(id);
+        this._timeouts.length = 0;
+        this._overlapCheckId = this._pointerWatchId = 0;
+        this._barrierReleaseId = this._reassertId = 0;
+
+        if (this._shieldId) {
+            Main.screenShield.disconnect(this._shieldId);
+            this._shieldId = 0;
+        }
+
+        for (const win of this._trackedWindows)
+            win.disconnectObject(this);
+        this._trackedWindows.clear();
+
+        Main.layoutManager.disconnectObject(this);
+        Main.overview.disconnectObject(this);
+        global.display.disconnectObject(this);
+        Shell.WindowTracker.get_default().disconnectObject(this);
+    }
+
     // --- overview ----------------------------------------------------------
 
-    // overviewControls allocates the search entry at the top edge of the work
-    // area, and places everything below it — thumbnails, workspaces, app grid
-    // — relative to that entry's height. With the strut released the top edge
-    // is the top of the screen, so the entry sits under the bar.
-    //
-    // Padding the entry rather than shifting _workAreaBox is deliberate. That
-    // box is also the 1:1 target the workspace animates to as the overview
-    // closes (_computeWorkspacesBoxForState, ControlsState.HIDDEN), so moving
-    // it leaves the animation landing a bar's height away from where the real
-    // windows are, which shows as a jump right at the end of the close.
+    // With the strut released the overview's search entry sits under the bar,
+    // so it is padded down. Moving _workAreaBox instead would make the closing
+    // animation land a bar's height away from the real windows.
     _padOverviewSearch() {
         this._searchBin =
             Main.overview?._overview?.controls?._searchEntryBin ?? null;

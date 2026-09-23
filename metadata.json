@@ -1,9 +1,13 @@
 {
   "uuid": "mantel@jith.github.io",
   "name": "Mantel",
-  "description": "Numbered workspaces in the top bar, and a top bar that gets out of the way. Use either, or both.\n\nWORKSPACE NUMBERS\nSee which workspace you are on at a glance, instead of counting dots.\n• Click a number to switch to that workspace\n• Super+1 to Super+0 jumps straight there, and creates the workspace if it does not exist yet\n• The workspace switcher popup no longer appears, since the top bar already shows where you are\n\nAUTO-HIDE THE TOP BAR\nThe bar stays visible while nothing is in its way, and slides away when a window needs the room. Push the pointer against the top edge of the screen to bring it back. It stays put in the overview and while a menu is open.\n\nWhile auto-hide is on, windows use the full height of the screen and the bar floats above them, so nothing resizes when you peek at the clock.\n\nBoth features can be turned off individually in Preferences.",
+  "description": "Numbered workspaces in the top bar, a top bar that gets out of the way, and windows tiled as they open. Use any of them, or all three.\n\nWORKSPACE NUMBERS\nSee which workspace you are on at a glance, instead of counting dots.\n• Click a number to switch to that workspace\n• Super+1 to Super+0 jumps straight there, and creates the workspace if it does not exist yet\n• The workspace switcher popup no longer appears, since the top bar already shows where you are\n\nAUTO-HIDE THE TOP BAR\nThe bar stays visible while nothing is in its way, and slides away when a window needs the room. Push the pointer against the top edge of the screen to bring it back. It stays put in the overview and while a menu is open.\n\nWhile auto-hide is on, windows use the full height of the screen and the bar floats above them, so nothing resizes when you peek at the clock.\n\nAUTO-TILING (off by default)\nWindows are laid out as they open, in the style of Hyprland's dwindle layout: each new window splits the focused one, and closing a window gives its space back. Focus follows the mouse, and keys move focus, swap, resize, float and maximize windows; both can be changed. Small utility apps open floating, and the list can be edited. The layout is kept while the screen is locked.\n\nEach feature can be turned off individually in Preferences.",
   "shell-version": [
     "50"
+  ],
+  "session-modes": [
+    "user",
+    "unlock-dialog"
   ],
   "url": "https://github.com/jith/mantel",
   "settings-schema": "org.gnome.shell.extensions.mantel",
