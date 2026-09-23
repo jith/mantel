@@ -120,7 +120,7 @@ version range.
 
 ## Installing
 
-From [extensions.gnome.org](https://extensions.gnome.org) once published.
+From [extensions.gnome.org](https://extensions.gnome.org/extension/10986/mantel/).
 
 To install from source:
 
