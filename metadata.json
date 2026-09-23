@@ -12,5 +12,5 @@
   "url": "https://github.com/jith/mantel",
   "settings-schema": "org.gnome.shell.extensions.mantel",
   "gettext-domain": "mantel",
-  "version-name": "1.1"
+  "version-name": "2.0"
 }
