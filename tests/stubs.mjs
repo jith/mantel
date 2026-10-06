@@ -77,22 +77,26 @@ export const Meta = {
     },
 };
 
-// Every chord bound, so a test can hold them against the schema.
+// Every chord bound, so a test can hold them against the schema. A name in
+// `taken` is another extension's: it does not bind, and removing it by name
+// would take it from that extension.
 export const bound = [];
 export const chords = new Map();
+export const taken = new Set();
 export const Main = {
     wm: {
         addKeybinding: (name, _settings, _flags, _mode, handler) => {
+            if (taken.has(name))
+                return Meta.KeyBindingAction.NONE;
             bound.push(name);
             chords.set(name, handler);
             return 1;
         },
-        removeKeybinding: name => bound.splice(bound.indexOf(name), 1),
-    },
-    sessionMode: {
-        isLocked: false,
-        connectObject(_signal, handler) { this.updated = handler; },
-        disconnectObject() { this.updated = null; },
+        removeKeybinding: name => {
+            taken.delete(name);
+            if (bound.includes(name))
+                bound.splice(bound.indexOf(name), 1);
+        },
     },
 };
 
@@ -126,7 +130,6 @@ export const global = {
         focus_window: null,
         get_tab_list: () => mru,
         connectObject() {}, disconnectObject() {},
-        get_monitor_scale: () => 1,
         get_n_monitors: () => 2,
         // Monitor 1 is right of monitor 0.
         get_monitor_neighbor_index: (monitor, direction) =>
@@ -265,12 +268,15 @@ export const Gio = {
 // A window as mutter shows it: resizable, and taking whatever it is given.
 // Signal handlers are kept by name, so a test can emit what mutter would.
 let stackTop = 0;
+let lastId = 1000;
 export const limit = (width, height) => () => [true, width, height];
 export const win = (title, extra = {}) => ({
+    id: ++lastId,
     title, minimized: false, above: false, stuck: false, onAll: false, primary: true,
     monitor: 0, fullscreen: false, maxH: false, maxV: false, stacked: 0, placements: 0,
     frame: rect(100, 100, 600, 400),
     handlers: null, connected: new Map(),
+    get_id() { return this.id; },
     get_title() { return this.title; },
     get_min_size: () => [false, 0, 0],
     get_max_size: () => [false, 0, 0],
@@ -286,6 +292,7 @@ export const win = (title, extra = {}) => ({
     get_maximize_flags() { return (this.maxH ? 1 : 0) | (this.maxV ? 2 : 0); },
     is_maximized() { return this.maxH && this.maxV; },
     is_fullscreen() { return this.fullscreen; },
+    is_above() { return this.above; },
     is_on_all_workspaces() { return this.onAll || this.stuck; },
     is_on_primary_monitor() { return this.primary; },
     is_skip_taskbar: () => false,

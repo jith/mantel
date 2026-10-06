@@ -3,19 +3,17 @@
 // Mantel: numbered workspaces, top bar auto-hide and auto-tiling. Each
 // feature is its own module, started and stopped from its own setting.
 
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {WorkspaceNumbers} from './workspaces.js';
 import {PanelAutohide} from './autohide.js';
 import {AutoTile} from './tiling.js';
 
-// The setting key, the field the instance is kept in, its constructor, and
-// whether it keeps running on the lock screen.
+// The setting key, the field the instance is kept in, and its constructor.
 const FEATURES = [
     {key: 'workspace-numbers', field: '_workspaces', create: () => new WorkspaceNumbers()},
     {key: 'autohide', field: '_autohide', create: () => new PanelAutohide()},
-    {key: 'auto-tile', field: '_autoTile', create: settings => new AutoTile(settings), locked: true},
+    {key: 'auto-tile', field: '_autoTile', create: settings => new AutoTile(settings)},
 ];
 
 // A feature that throws must not take the others with it.
@@ -37,18 +35,11 @@ export default class MantelExtension extends Extension {
             this._settings.connectObject(
                 `changed::${feature.key}`, () => this._sync(feature), this);
         }
-        Main.sessionMode.connectObject('updated',
-            () => FEATURES.forEach(feature => this._sync(feature)), this);
 
         FEATURES.forEach(feature => this._sync(feature));
     }
 
-    // The unlock-dialog session mode keeps auto-tiling running while the
-    // screen is locked, so that the layout is still there after unlocking
-    // rather than rebuilt from scratch. It drops its keybindings there, and
-    // the other features stop on the lock screen as they would without it.
     disable() {
-        Main.sessionMode.disconnectObject(this);
         this._settings.disconnectObject(this);
         this._settings = null;
 
@@ -57,7 +48,7 @@ export default class MantelExtension extends Extension {
     }
 
     _sync(feature) {
-        if (this._settings.get_boolean(feature.key) && (feature.locked || !Main.sessionMode.isLocked))
+        if (this._settings.get_boolean(feature.key))
             this._start(feature);
         else
             this._stop(feature);

@@ -78,7 +78,6 @@ export class PanelAutohide {
         this._barrierReleaseId = 0;
         this._enabled = false;
         this._reassertId = 0;
-        this._shieldId = 0;
 
         this._searchBin = null;
         this._origSearchStyle = null;
@@ -157,9 +156,10 @@ export class PanelAutohide {
         }
 
         // active-changed covers lock, unlock and resume-while-locked — every
-        // path that can leave the work area stale.
-        this._shieldId = Main.screenShield.connect(
-            'active-changed', () => this._scheduleReassert());
+        // path that can leave the work area stale. There is no screen shield
+        // where the session cannot lock.
+        Main.screenShield?.connectObject(
+            'active-changed', () => this._scheduleReassert(), this);
 
         this._enabled = true;
         this._overlapping = this._windowsOverlap();
@@ -197,10 +197,7 @@ export class PanelAutohide {
         this._overlapCheckId = this._pointerWatchId = 0;
         this._barrierReleaseId = this._reassertId = 0;
 
-        if (this._shieldId) {
-            Main.screenShield.disconnect(this._shieldId);
-            this._shieldId = 0;
-        }
+        Main.screenShield?.disconnectObject(this);
 
         for (const win of this._trackedWindows)
             win.disconnectObject(this);

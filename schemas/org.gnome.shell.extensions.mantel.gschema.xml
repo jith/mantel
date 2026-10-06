@@ -167,31 +167,22 @@
       <summary>Move the edge beside the focused window down a lot</summary>
       <description>Move the nearest division beside the focused window 300 pixels down, growing the window on one side of it and shrinking the one on the other, whichever side the focused window is on. A floating window is made 300 pixels taller instead.</description>
     </key>
-    <!-- Retired: nothing binds these any more. They stay because a session
-         still running an older Mantel reads them whenever it is enabled
-         again — every screen unlock — and GSettings aborts the whole shell
-         on a key its schema does not have. -->
-    <key name="grow" type="as">
-      <default>[]</default>
-      <summary>Retired: grow the focused window</summary>
-      <description>No longer used. Replaced by the resize shortcuts.</description>
-    </key>
-    <key name="shrink" type="as">
-      <default>[]</default>
-      <summary>Retired: shrink the focused window</summary>
-      <description>No longer used. Replaced by the resize shortcuts.</description>
-    </key>
     <key name="gap" type="i">
       <default>6</default>
       <range min="0" max="64"/>
       <summary>Space between tiled windows</summary>
-      <description>Space left between neighbouring windows, multiplied by the monitor's scale factor. The layout as a whole sits flush with the screen, apart from the sliver each edge keeps back so that the focused window's outline has somewhere to be drawn.</description>
+      <description>Logical pixels left between neighbouring windows. The layout as a whole sits flush with the screen, apart from the sliver each edge keeps back so that the focused window's outline has somewhere to be drawn.</description>
     </key>
     <key name="border" type="i">
       <default>2</default>
       <range min="0" max="32"/>
       <summary>Focused window outline</summary>
       <description>Logical pixels of outline drawn around the focused window, and the room kept for it at the edge of the screen, since it is drawn outside the window rather than inside. Zero leaves the layout flush and draws nothing. A window with the workspace to itself is left flush and unmarked either way, since there is nothing to tell it apart from. Drawn in the accent colour; the outline of Ubuntu Tiling Assistant's focus hint is switched off meanwhile.</description>
+    </key>
+    <key name="saved-layout" type="s">
+      <default>''</default>
+      <summary>Layout to take up again</summary>
+      <description>The layout as auto-tiling left it when it last stopped, by window, taken up again when it next starts, as it does after every screen lock. Not for editing.</description>
     </key>
     <!-- What auto-tiling changed outside Mantel, kept on disk so it can be
          handed back even after a logout, which gives no chance to do it

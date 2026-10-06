@@ -16,7 +16,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {BorrowedSetting} from './borrowed.js';
 import {FocusOutline} from './outline.js';
-import {floatRule, followsWorkspaces, minSize, tileable} from './rules.js';
+import {floatRule, followsWorkspaces, minSize, pinned, tileable} from './rules.js';
 import {BORROWED_SHORTCUTS, unbind} from './shortcuts.js';
 
 const TILING_ASSISTANT = 'org.gnome.shell.extensions.tiling-assistant';
@@ -100,6 +100,9 @@ export class AutoTile {
         this._pseudo = new Set();
         // Maximized by their app: floating over a tile they keep.
         this._maximized = new Set();
+        // Put above, and on every workspace, by Mantel rather than their user.
+        this._raised = new Set();
+        this._pinned = new Set();
         // Opened, not yet drawn.
         this._pending = new Set();
         this._queued = new Set();
@@ -131,9 +134,7 @@ export class AutoTile {
             'changed::debug', () => (this._debug = this._settings.get_boolean('debug')),
             this);
 
-        Main.sessionMode.connectObject('updated',
-            () => this._bindKeys(!Main.sessionMode.isLocked), this);
-        this._bindKeys(!Main.sessionMode.isLocked);
+        this._bindKeys(true);
 
         // Trees are keyed by workspace index, which GNOME renumbers.
         global.workspace_manager.connectObject(
@@ -156,17 +157,25 @@ export class AutoTile {
             'closing', () => this._stop(),
             this);
 
+        try {
+            this._restore();
+        } catch (e) {
+            console.warn(`Mantel: the saved layout was not restored: ${e}`);
+        }
+
         for (const window of this._windows()) {
             this._track(window);
-            this._admit(window);
+            if (!this._floating.has(window) && !this._findLeaf(window))
+                this._admit(window);
         }
         this._relayout();
     }
 
     disable() {
-        for (const window of this._floating)
+        this._save();
+        for (const window of this._raised)
             window.unmake_above();
-        for (const window of this._popped)
+        for (const window of this._pinned)
             window.unstick();
 
         this._stop();
@@ -179,7 +188,6 @@ export class AutoTile {
     // unmanaged crashes the shell.
     _stop() {
         this._bindKeys(false);
-        Main.sessionMode.disconnectObject(this);
         this._settings.disconnectObject(this);
 
         for (const id of this._timeouts)
@@ -200,9 +208,84 @@ export class AutoTile {
         this._outline = null;
 
         for (const collection of [this._trees, this._floating, this._popped, this._scratch,
-            this._pseudo, this._maximized, this._pending, this._queued, this._sent,
-            this._untiled, this._placements])
+            this._pseudo, this._maximized, this._raised, this._pinned, this._pending,
+            this._queued, this._sent, this._untiled, this._placements])
             collection.clear();
+    }
+
+    // The layout as plain data, by window id, for the next enable() to take
+    // up: locking the screen disables the extension, and the windows should
+    // be found as they were left.
+    _save() {
+        const ids = windows => [...windows].map(window => window.get_id());
+        const plain = node => node.window ? node.window.get_id() : {
+            horizontal: node.horizontal,
+            ratio: node.ratio,
+            children: node.children.map(plain),
+        };
+
+        this._settings.set_string('saved-layout', JSON.stringify({
+            trees: [...this._trees].map(([key, root]) => [key, plain(root)]),
+            floating: ids(this._floating),
+            popped: ids(this._popped),
+            scratch: ids(this._scratch),
+            pseudo: ids(this._pseudo),
+            maximized: ids(this._maximized),
+            untiled: [...this._untiled].map(([window, {x, y, width, height}]) =>
+                [window.get_id(), x, y, width, height]),
+        }));
+    }
+
+    // Only for windows still here, and tiled ones still where they were; the
+    // rest are admitted as new. mutter starts its ids from a random number,
+    // so one left by another session matches nothing.
+    _restore() {
+        const text = this._settings.get_string('saved-layout');
+        this._settings.reset('saved-layout');
+        if (!text)
+            return;
+
+        const saved = JSON.parse(text);
+        const byId = new Map(this._windows().map(window => [window.get_id(), window]));
+        const known = ids => ids.map(id => byId.get(id)).filter(Boolean);
+
+        for (const [id, ...frame] of saved.untiled) {
+            if (byId.has(id))
+                this._untiled.set(byId.get(id), rectangle(...frame));
+        }
+        known(saved.floating).forEach(window => this._raise(window));
+        known(saved.popped).forEach(window => this._pin(window));
+        known(saved.scratch).forEach(window => this._scratch.add(window));
+        known(saved.pseudo).forEach(window => this._pseudo.add(window));
+        known(saved.maximized).forEach(window => this._maximized.add(window));
+
+        for (const [key, tree] of saved.trees) {
+            const root = this._revive(tree, key, byId);
+            if (root)
+                this._trees.set(key, root);
+        }
+    }
+
+    // A split left with one side is replaced by that side.
+    _revive(saved, key, byId) {
+        if (!saved.children) {
+            const window = byId.get(saved);
+            return window && !window.minimized && !this._floating.has(window) &&
+                this._key(window) === key ? {window, parent: null, rect: null} : null;
+        }
+
+        const children = saved.children
+            .map(child => this._revive(child, key, byId))
+            .filter(Boolean);
+        if (children.length < 2)
+            return children[0] ?? null;
+
+        const split = {
+            children, horizontal: saved.horizontal, ratio: saved.ratio, parent: null, rect: null,
+        };
+        for (const child of children)
+            child.parent = split;
+        return split;
     }
 
     // Only keys that are installed: GSettings aborts the shell on a key its
@@ -237,7 +320,7 @@ export class AutoTile {
 
     // --- chords -------------------------------------------------------------
 
-    // Unbound on the lock screen.
+    // A name that does not bind is another extension's, and not removed.
     _bindKeys(bind) {
         for (const name of this._keybindings)
             Main.wm.removeKeybinding(name);
@@ -251,7 +334,8 @@ export class AutoTile {
                 });
             if (bound === Meta.KeyBindingAction.NONE)
                 console.warn(`Mantel: could not bind ${name}`);
-            this._keybindings.push(name);
+            else
+                this._keybindings.push(name);
         }
     }
 
@@ -479,8 +563,7 @@ export class AutoTile {
             area.y + Math.round((area.height - height) / 2),
             width, height);
 
-        window.stick();
-        this._popped.add(window);
+        this._pin(window);
         this._apply(key);
     }
 
@@ -492,8 +575,7 @@ export class AutoTile {
             return;
 
         const key = this._float(window);
-        if (this._popped.delete(window))
-            window.unstick();
+        this._unpin(window);
 
         this._scratch.add(window);
         window.minimize();
@@ -538,22 +620,45 @@ export class AutoTile {
             window.move_resize_frame(true, rect.x, rect.y, rect.width, rect.height);
         }
 
-        this._floating.add(window);
-        window.make_above();
+        this._raise(window);
         return key;
     }
 
     _rejoin(window) {
         this._scratch.delete(window);
-        if (this._popped.delete(window))
-            window.unstick();
+        this._unpin(window);
 
         if (!tileable(window))
             return;
 
         this._floating.delete(window);
-        window.unmake_above();
+        if (this._raised.delete(window))
+            window.unmake_above();
         this._apply(this._insert(window));
+    }
+
+    // Floating, in front of the tiled windows. One its user already keeps on
+    // top is left there when it is let go, and so with every workspace.
+    _raise(window) {
+        this._floating.add(window);
+        if (!window.is_above()) {
+            window.make_above();
+            this._raised.add(window);
+        }
+    }
+
+    _pin(window) {
+        this._popped.add(window);
+        if (!pinned(window)) {
+            window.stick();
+            this._pinned.add(window);
+        }
+    }
+
+    _unpin(window) {
+        this._popped.delete(window);
+        if (this._pinned.delete(window))
+            window.unstick();
     }
 
     // --- mouse --------------------------------------------------------------
@@ -724,8 +829,7 @@ export class AutoTile {
             const area = window.get_work_area_current_monitor();
             window.move_resize_frame(true, area.x + area.width - PIP_WIDTH - PIP_MARGIN,
                 area.y + Math.round(area.height * 0.04), PIP_WIDTH, PIP_HEIGHT);
-            this._popped.add(window);
-            window.stick();
+            this._pin(window);
         }
         this._log(`"${window.get_title()}" floats: ${rule}`);
         return null;
@@ -759,7 +863,8 @@ export class AutoTile {
             this._endGrab();
 
         for (const collection of [this._floating, this._popped, this._scratch, this._pseudo,
-            this._maximized, this._pending, this._untiled, this._placements])
+            this._maximized, this._raised, this._pinned, this._pending, this._sent,
+            this._untiled, this._placements])
             collection.delete(window);
 
         const key = this._detach(window);
@@ -859,7 +964,7 @@ export class AutoTile {
         return {
             root,
             workArea: workspace.get_work_area_for_monitor(monitor),
-            gap: Math.round(this._settings.get_int('gap') * global.display.get_monitor_scale(monitor)),
+            gap: this._settings.get_int('gap'),
             edge: root.window ? 0 : this._settings.get_int('border'),
         };
     }

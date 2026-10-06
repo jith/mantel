@@ -39,6 +39,13 @@ function listed(entry, id) {
     return want.endsWith('*') ? have.startsWith(want.slice(0, -1)) : have === want;
 }
 
+// On every workspace because it was put there, not for being on a secondary
+// monitor while workspaces are only on the primary, where every window is.
+export function pinned(window) {
+    return window.is_on_all_workspaces() &&
+        (window.is_on_primary_monitor() || !Meta.prefs_get_workspaces_only_on_primary());
+}
+
 // Whether a window can be laid out at all. Nothing overrides this.
 export function tileable(window) {
     if (window.get_monitor() < 0 ||
@@ -49,10 +56,8 @@ export function tileable(window) {
         window.is_fullscreen())
         return false;
 
-    // Only a floating window may be on every workspace, except on a secondary
-    // monitor while workspaces are only on the primary, where every window is.
-    if (window.is_on_all_workspaces() &&
-        (window.is_on_primary_monitor() || !Meta.prefs_get_workspaces_only_on_primary()))
+    // Only a floating window may be on every workspace.
+    if (pinned(window))
         return false;
 
     // Maximized, a window cannot be resized until it is unmaximized.

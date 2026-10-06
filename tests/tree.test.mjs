@@ -2,9 +2,9 @@ import {AutoTile} from './.tree-under-test.mjs';
 import {tileable} from './.rules-under-test.mjs';
 import {readFileSync} from 'node:fs';
 import {BORROWED_SHORTCUTS, SHORTCUT_GROUPS} from '../shortcuts.js';
-import {FocusOutline, GDesktopEnums, Main, Meta, Settings, apps, bound, chords as press, clockStep, global,
+import {FocusOutline, GDesktopEnums, Meta, Settings, apps, bound, chords as press, clockStep, global,
     hold, limit, pump, queued, rect, release, schemas, setFocus, setFocusMode, setMru, setPointer,
-    setWorkspaceIndex, tick, win} from './stubs.mjs';
+    setWorkspaceIndex, taken, tick, win} from './stubs.mjs';
 
 let failures = 0;
 const expect = (label, ok, detail = '') => {
@@ -26,7 +26,7 @@ const floatApps = JSON.parse(schemaText
 
 const newTiler = () => {
     const tiler = new AutoTile(new Settings({gap: 0, border: 0, debug: false, 'float-apps': floatApps,
-        'focus-follows-mouse': true}));
+        'focus-follows-mouse': true, 'saved-layout': ''}));
     tiler._outline = new FocusOutline();
     return tiler;
 };
@@ -294,6 +294,25 @@ t._toggleFloat();
 check('the float chord brings it into the layout', C, '768x960+768+0');
 expect('and out of the scratchpad', !t._scratch.has(C) && !C.above);
 
+section('on top or pinned by its user  (left that way when it is let go)');
+const Top = win('Top', {above: true});
+open(t, Top, [C, A]);
+setFocus(Top);
+t._toggleFloat();
+setMru([Top, C, A]);
+t._toggleFloat();
+expect('floated and brought back, still on top', !!t._findLeaf(Top) && Top.above);
+close(t, Top, [C, A]);
+const Kept = win('Kept', {stuck: true});
+t._admit(Kept);
+setFocus(Kept);
+t._togglePop();
+t._togglePop();
+expect('popped and put back, still on every workspace', Kept.stuck && t._floating.has(Kept) &&
+    !t._popped.has(Kept));
+t._floating.delete(Kept);
+check('the layout is as it was', C, '768x960+768+0');
+
 section('maximized  (floats over the tile it keeps)');
 for (const window of [A, C])
     t._track(window);
@@ -560,6 +579,8 @@ for (const window of [P, Q]) {
     window.monitor = -1;
 }
 expect('each leaves the tree at once', !t._findLeaf(P) && !t._findLeaf(Q), shape(t));
+expect('and nothing of them is kept', ![t._sent, t._untiled, t._placements].some(kept =>
+    kept.has(P) || kept.has(Q)));
 C.monitor = -1;
 pump();
 expect('no unmanaged window is placed', counts().split(',').slice(1).join() ===
@@ -613,7 +634,7 @@ clockStep(250);
 section('keys and schema');
 const chords = new Set([...schemaText.matchAll(/<key name="([^"]+)" type="as">/g)]
     .map(match => match[1])
-    .filter(name => !['grow', 'shrink', 'float-apps'].includes(name) && !name.startsWith('borrowed-')));
+    .filter(name => name !== 'float-apps' && !name.startsWith('borrowed-')));
 t._bindKeys(true);
 expect('every chord bound has a key', bound.every(name => chords.has(name)), `${bound.length} bound`);
 expect('every key is bound', [...chords].every(name => bound.includes(name)));
@@ -622,6 +643,15 @@ expect('the Shortcuts page lists every chord', listed.length === chords.size &&
     listed.every(name => chords.has(name)));
 t._bindKeys(false);
 expect('and every one is released', !bound.length);
+taken.add('focus-left');
+console.warn = message => warnings.push(message);
+t._bindKeys(true);
+console.warn = warn;
+expect('a name another extension has is not bound', !bound.includes('focus-left') &&
+    bound.length === chords.size - 1, warnings.at(-1));
+t._bindKeys(false);
+expect('nor taken from it afterwards', taken.has('focus-left') && !bound.length);
+taken.clear();
 const records = new Set([...schemaText.matchAll(/<key name="borrowed-([^"]+)"/g)].map(match => match[1]));
 const lent = [...Object.values(BORROWED_SHORTCUTS).flat(), ...t._borrow().map(loan => loan._key)];
 expect('every loan has a record key', lent.every(key => records.has(key)),
@@ -647,7 +677,7 @@ expect('a chord the user chose is kept', toMonitor._change(['<Super><Shift><Alt>
 for (const loanOf of [...t._borrow()])
     loanOf.giveBack();
 
-section('enable, lock and disable');
+section('enable and disable');
 const wm = schemas['org.gnome.desktop.wm.preferences'];
 const keys = schemas['org.gnome.desktop.wm.keybindings'];
 const ta = schemas['org.gnome.shell.extensions.tiling-assistant'];
@@ -685,13 +715,6 @@ expect('GNOME gives up the chords it shares with Mantel', !keys.get_strv('move-t
 expect('but keeps one the user chose', keys.get_strv('move-to-monitor-right').join() ===
     '<Super><Shift><Alt>Right');
 expect('every chord is bound', bound.length === chords.size, `${bound.length}`);
-Main.sessionMode.isLocked = true;
-Main.sessionMode.updated();
-expect('locked, the chords are released', !bound.length);
-expect('and the layout is kept', shape(t) === 'E1,E2');
-Main.sessionMode.isLocked = false;
-Main.sessionMode.updated();
-expect('unlocked, they are back', bound.length === chords.size);
 setFocus(E2);
 t._togglePop();
 setFocus(E1);
@@ -729,9 +752,81 @@ clicking.disable();
 const ending = newTiler();
 ending.enable();
 ending._stop();
-expect('the session ending releases every chord', !bound.length && !Main.sessionMode.updated);
+expect('the session ending releases every chord', !bound.length);
 ending.disable();
 expect('and disabling after it is harmless', !ending._outline && !ending._loans.length);
+
+section('disable and enable again  (the layout is taken up as it was left)');
+const again = settings => {
+    const tiler = new AutoTile(settings);
+    tiler.enable();
+    return tiler;
+};
+const [S1, S2, S3, S4, Free, Out, Own] = ['S1', 'S2', 'S3', 'S4', 'Free', 'Out', 'Own'].map(name => win(name));
+const frames = (...windows) => windows.map(window => `${window.frame}`).join(' ');
+setMru([]);
+t = newTiler();
+t.enable();
+const record = t._settings;
+for (const window of [S1, S2, S3, S4, Free, Out, Own])
+    open(t, window, [S3, S2, S1]);
+t._trees.get('0:0').ratio = 0.6;
+t._apply('0:0');
+for (const [window, chord] of [[Free, '_toggleFloat'], [Out, '_togglePop'], [Own, '_toggleFloat']]) {
+    setFocus(window);
+    t[chord]();
+}
+Own.above = true;
+t._raised.delete(Own);
+setFocus(S2);
+t._togglePseudo();
+const left = frames(S1, S2, S3, S4);
+const order = shape(t);
+setMru([Own, Out, Free, S4, S3, S2, S1]);
+t.disable();
+expect('it is put on record', record.get_string('saved-layout').includes('"ratio":0.6'));
+expect('and what Mantel set is undone', !Free.above && !Out.above && !Out.stuck);
+expect('but not what the user did', Own.above);
+t = again(record);
+expect('the record is used once', !('saved-layout' in record.user));
+expect('every tile is where it was', frames(S1, S2, S3, S4) === left && shape(t) === order,
+    `${shape(t)}  ${frames(S1, S2, S3, S4)}`);
+expect('a window out of the layout is out of it still', t._floating.has(Free) && Free.above &&
+    !t._findLeaf(Free));
+expect('one popped out is on every workspace again', t._popped.has(Out) && Out.stuck && Out.above);
+expect('one pseudo-tiled keeps its own size', t._pseudo.has(S2) && `${t._untiled.get(S2)}` === '600x400+100+100');
+setFocus(Free);
+setMru([Free, S4, S3, S2, S1]);
+t._toggleFloat();
+expect('and the float chord still brings one in', !!t._findLeaf(Free) && !Free.above);
+t._toggleFloat();
+
+const New = win('New');
+S2.monitor = 1;
+setMru([New, Own, Out, Free, S4, S2, S1]);
+t.disable();
+t = again(record);
+expect('a window closed meanwhile gives up its tile', shape(t) === 'S1,S4,New', shape(t));
+expect('one moved to another monitor is laid out there', t._findLeaf(S2)?.key === '0:1');
+expect('a new one is laid out as usual', !!t._findLeaf(New));
+t.disable();
+
+record.set_string('saved-layout', JSON.stringify({
+    trees: [['0:0', {horizontal: true, ratio: 0.5, children: [1, 2]}]],
+    floating: [3], popped: [3], scratch: [], pseudo: [], maximized: [], untiled: [[1, 0, 0, 10, 10]],
+}));
+setMru([S4, S1]);
+t = again(record);
+expect('a record from another session matches nothing', shape(t) === 'S4,S1' && !t._floating.size &&
+    t._untiled.get(S1).width !== 10 && !('saved-layout' in record.user), shape(t));
+t.disable();
+record.set_string('saved-layout', '{"trees": 7}');
+console.warn = message => warnings.push(message);
+t = again(record);
+console.warn = warn;
+expect('one that cannot be read is passed over', shape(t) === 'S4,S1' &&
+    warnings.at(-1).includes('saved layout'), warnings.at(-1));
+t.disable();
 
 console.log(`\n${failures === 0 ? 'all assertions passed' : `${failures} FAILURES`}\n`);
 process.exit(failures ? 1 : 0);

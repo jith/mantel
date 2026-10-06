@@ -14,12 +14,12 @@ cp ../borrowed.js ./.borrowed-under-test.mjs
 { echo "import {GDesktopEnums, GLib, Gio, Meta, Mtk, Main, Shell, global, FocusOutline} from '$PWD/stubs.mjs';"
   echo "import {BorrowedSetting} from '$PWD/.borrowed-under-test.mjs';"
   echo "import {BORROWED_SHORTCUTS, unbind} from '$PWD/../shortcuts.js';"
-  echo "import {floatRule, followsWorkspaces, minSize, tileable} from '$PWD/.rules-under-test.mjs';"
+  echo "import {floatRule, followsWorkspaces, minSize, pinned, tileable} from '$PWD/.rules-under-test.mjs';"
   sed -E '/^import .*;$/d' ../tiling.js; } > ./.tree-under-test.mjs
 
 node ./tree.test.mjs
 
-{ echo "const {Main, Extension, WorkspaceNumbers, PanelAutohide, AutoTile} = globalThis.extensionStubs;"
+{ echo "const {Extension, WorkspaceNumbers, PanelAutohide, AutoTile} = globalThis.extensionStubs;"
   sed -E '/^import .*;$/d' ../extension.js; } > ./.extension-under-test.mjs
 node ./extension.test.mjs
 node ./borrowed.test.mjs

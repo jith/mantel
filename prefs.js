@@ -56,7 +56,7 @@ export default class MantelPreferences extends ExtensionPreferences {
         // The setting key, its title and subtitle, and the largest value.
         const lengths = [
             ['gap', _('Gap between windows'),
-                _('Space left between neighbouring windows, growing with the display scale. The layout itself stays flush with the screen'), 64],
+                _('Space left between neighbouring windows. The layout itself stays flush with the screen'), 64],
             ['border', _('Focused window outline'),
                 _('Thickness of the outline around the focused window. The screen edge keeps this much back, because the outline is drawn outside the window. Zero draws none'), 32],
         ];

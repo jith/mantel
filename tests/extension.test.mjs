@@ -1,6 +1,5 @@
-// Starting and stopping features: from their settings, around the lock
-// screen, and with one of them throwing. The features are stand-ins that
-// record what was asked of them.
+// Starting and stopping features: from their settings, and with one of them
+// throwing. The features are stand-ins that record what was asked of them.
 import {Settings} from './stubs.mjs';
 
 let failures = 0;
@@ -27,13 +26,7 @@ const feature = name => class {
 };
 
 const settings = new Settings({'workspace-numbers': true, 'autohide': true, 'auto-tile': true});
-const sessionMode = {
-    isLocked: false,
-    connectObject(_signal, handler) { this.updated = handler; },
-    disconnectObject() { this.updated = null; },
-};
 globalThis.extensionStubs = {
-    Main: {sessionMode},
     Extension: class { getSettings() { return settings; } },
     WorkspaceNumbers: feature('numbers'),
     PanelAutohide: feature('autohide'),
@@ -49,14 +42,6 @@ expect('all three start', state() === 'autohide,numbers,tiling', state());
 settings.set_boolean('autohide', false);
 expect('one switched off stops alone', state() === 'numbers,tiling', state());
 settings.set_boolean('autohide', true);
-
-console.log('\nthe lock screen  (only the layout stays)');
-sessionMode.isLocked = true;
-sessionMode.updated();
-expect('locked, tiling alone runs', state() === 'tiling', state());
-sessionMode.isLocked = false;
-sessionMode.updated();
-expect('unlocked, the others are back', state() === 'autohide,numbers,tiling', state());
 
 console.log('\na feature that throws  (the others carry on)');
 const error = console.error;
