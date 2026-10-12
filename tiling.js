@@ -52,6 +52,8 @@ const LOANS = [
 ];
 
 const SETTLE_MS = 250;
+// A maximize this soon after a click or a key press in a window is its user's.
+const USER_MS = 1000;
 const DIRECTIONS = ['left', 'right', 'up', 'down'];
 const RESIZE_STEPS = {'': 100, '-little': 25, '-lot': 300};
 const MIN_RATIO = 0.1;
@@ -108,10 +110,12 @@ export class AutoTile {
         this._queued = new Set();
 
         // Per window: the rectangle last asked for, its frame from before it
-        // was first placed, and its recent placements.
+        // was first placed, its recent placements, and when its user had last
+        // clicked or typed in it as it was let in.
         this._sent = new Map();
         this._untiled = new Map();
         this._placements = new Map();
+        this._inputs = new Map();
 
         this._grabbed = null;
         this._grabFrame = null;
@@ -209,7 +213,7 @@ export class AutoTile {
 
         for (const collection of [this._trees, this._floating, this._popped, this._scratch,
             this._pseudo, this._maximized, this._raised, this._pinned, this._pending,
-            this._queued, this._sent, this._untiled, this._placements])
+            this._queued, this._sent, this._untiled, this._placements, this._inputs])
             collection.clear();
     }
 
@@ -530,10 +534,13 @@ export class AutoTile {
         if (!window || (found && !found.leaf.parent))
             return;
 
-        if (window.is_maximized())
+        if (window.is_maximized()) {
             window.unmaximize();
-        else
+        } else {
+            if (found)
+                this._maximized.add(window);
             window.maximize();
+        }
     }
 
     // Out of the layout at a set size, centred, in front and on every
@@ -813,6 +820,7 @@ export class AutoTile {
 
         this._log(`"${window.get_title()}" takes over from a maximized window`);
         covering.forEach(other => other.unmaximize());
+        this._maximized.add(window);
         window.maximize();
     }
 
@@ -820,6 +828,8 @@ export class AutoTile {
     // brings it in. Picture-in-picture goes to the top right corner and
     // follows across workspaces.
     _admit(window, preferred = null) {
+        this._inputs.set(window, window.get_user_time());
+
         const rule = floatRule(window, this._settings.get_strv('float-apps'));
         if (!rule)
             return this._insert(window, preferred);
@@ -864,7 +874,7 @@ export class AutoTile {
 
         for (const collection of [this._floating, this._popped, this._scratch, this._pseudo,
             this._maximized, this._raised, this._pinned, this._pending, this._sent,
-            this._untiled, this._placements])
+            this._untiled, this._placements, this._inputs])
             collection.delete(window);
 
         const key = this._detach(window);
@@ -885,9 +895,14 @@ export class AutoTile {
 
             const root = this._trees.get(key);
             for (const leaf of root ? this._leaves(root) : []) {
-                if (!this._maximized.has(leaf.window) && this._appMaximized(leaf)) {
+                if (this._maximized.has(leaf.window) || !this._appMaximized(leaf))
+                    continue;
+
+                if (this._userAsked(leaf.window)) {
                     this._log(`"${leaf.window.get_title()}" floats over its tile`);
                     this._maximized.add(leaf.window);
+                } else {
+                    this._log(`"${leaf.window.get_title()}" maximized itself; back to its tile`);
                 }
             }
 
@@ -900,6 +915,15 @@ export class AutoTile {
         const window = leaf.window;
         return window !== this._grabbed && window.is_maximized() &&
             (leaf.parent !== null || this._pseudo.has(window));
+    }
+
+    // A maximize is its user's when it follows a click or a key press in that
+    // window. An app that asks by itself, as one does to open the way it was
+    // last closed, has had none since it was let in, and is put back.
+    _userAsked(window) {
+        const input = window.get_user_time();
+        return input !== this._inputs.get(window) &&
+            global.display.get_current_time_roundtrip() - input < USER_MS;
     }
 
     // Unmaximized, it is let go, to be placed in its tile again.

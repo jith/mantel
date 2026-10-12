@@ -65,6 +65,9 @@ space back to the window it was split from.
   Center, Electron apps such as VS Code — keep their buttons. Maximizing a
   tiled window, or `Super`+`Alt`+`F`, floats it over its tile, above the
   others; unmaximizing it, or `Super`+`T`, puts it back in the same tile.
+  An app that maximizes itself, as some do to open the way they were last
+  closed, is put back in its tile: only a maximize that follows a click or a
+  key press in that window counts.
   Minimizing takes a window out of the layout until it is restored.
   Focusing a tiled window under a maximized one maximizes it in that one's
   place.

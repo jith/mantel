@@ -22,6 +22,12 @@ export const pump = () => {
 export const release = () => (held = null);
 export const queued = () => held?.size ?? 0;
 
+// The time of day in milliseconds, as mutter stamps input, and a click or a
+// key press in a window at that time.
+let wall = 100000;
+export const pass = ms => (wall += ms);
+export const touch = window => (window.userTime = wall);
+
 export const GLib = {
     PRIORITY_DEFAULT: 0, SOURCE_REMOVE: false,
     timeout_add: (_priority, _interval, callback) => {
@@ -130,6 +136,7 @@ export const global = {
         focus_window: null,
         get_tab_list: () => mru,
         connectObject() {}, disconnectObject() {},
+        get_current_time_roundtrip: () => wall,
         get_n_monitors: () => 2,
         // Monitor 1 is right of monitor 0.
         get_monitor_neighbor_index: (monitor, direction) =>
@@ -271,12 +278,13 @@ let stackTop = 0;
 let lastId = 1000;
 export const limit = (width, height) => () => [true, width, height];
 export const win = (title, extra = {}) => ({
-    id: ++lastId,
+    id: ++lastId, userTime: 0,
     title, minimized: false, above: false, stuck: false, onAll: false, primary: true,
     monitor: 0, fullscreen: false, maxH: false, maxV: false, stacked: 0, placements: 0,
     frame: rect(100, 100, 600, 400),
     handlers: null, connected: new Map(),
     get_id() { return this.id; },
+    get_user_time() { return this.userTime; },
     get_title() { return this.title; },
     get_min_size: () => [false, 0, 0],
     get_max_size: () => [false, 0, 0],

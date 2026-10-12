@@ -3,8 +3,8 @@ import {tileable} from './.rules-under-test.mjs';
 import {readFileSync} from 'node:fs';
 import {BORROWED_SHORTCUTS, SHORTCUT_GROUPS} from '../shortcuts.js';
 import {FocusOutline, GDesktopEnums, Meta, Settings, apps, bound, chords as press, clockStep, global,
-    hold, limit, pump, queued, rect, release, schemas, setFocus, setFocusMode, setMru, setPointer,
-    setWorkspaceIndex, taken, tick, win} from './stubs.mjs';
+    hold, limit, pass, pump, queued, rect, release, schemas, setFocus, setFocusMode, setMru, setPointer,
+    setWorkspaceIndex, taken, tick, touch, win} from './stubs.mjs';
 
 let failures = 0;
 const expect = (label, ok, detail = '') => {
@@ -313,10 +313,16 @@ expect('popped and put back, still on every workspace', Kept.stuck && t._floatin
 t._floating.delete(Kept);
 check('the layout is as it was', C, '768x960+768+0');
 
+// The app's own maximize button: a click in the window, then its maximize.
+const byUser = window => {
+    touch(window);
+    window.maximize();
+};
+
 section('maximized  (floats over the tile it keeps)');
 for (const window of [A, C])
     t._track(window);
-A.maximize();
+byUser(A);
 expect('beside C, it floats over its tile', t._maximized.has(A) && A.is_maximized() &&
     !!t._findLeaf(A));
 C.raise();
@@ -338,10 +344,10 @@ t._toggleMaximize();
 expect('the maximize chord floats it the same way', t._maximized.has(A));
 t._toggleMaximize();
 check('and again puts it back', A, '768x960+0+0');
-A.maximize();
+byUser(A);
 t._toggleFloat();
 check('so does the float chord', A, '768x960+0+0');
-A.maximize();
+byUser(A);
 setPointer(1200, 400);
 t._onGrabBegin(A, Meta.GrabOp.MOVING);
 t._onGrabEnd(A, Meta.GrabOp.MOVING);
@@ -355,7 +361,7 @@ t._togglePop();
 t._swap('left');
 check('and rejoins where it was', A, '768x960+0+0');
 t._toggleFloat();
-A.maximize();
+byUser(A);
 C.raise();
 t._keepFloatsOnTop();
 expect('floating, then maximized, it stays on top', A.stacked > C.stacked);
@@ -370,7 +376,7 @@ for (const window of [A, C])
 section('focus under a maximized window  (it takes over)');
 for (const window of [A, C])
     t._track(window);
-A.maximize();
+byUser(A);
 setFocus(C);
 t._enforce(C);
 expect('C is maximized in its place', t._maximized.has(C) && C.is_maximized());
@@ -383,6 +389,34 @@ setFocus(A);
 t._enforce(A);
 expect('with nothing maximized, focus changes nothing', !A.get_maximize_flags() && !C.get_maximize_flags());
 check('C in its tile', C, '768x960+768+0');
+for (const window of [A, C])
+    window.disconnectObject();
+
+section('an app that maximizes itself  (put back in its tile)');
+for (const window of [A, C])
+    t._track(window);
+pass(5000);
+C.maximize();
+expect('with no click or key in it, it is not floated', !t._maximized.has(C) && !C.get_maximize_flags());
+check('and is back in its tile', C, '768x960+768+0');
+const Opening = win('Opening');
+touch(Opening);
+t._track(Opening);
+setMru([C, A]);
+t._apply(t._admit(Opening));
+const tile = `${Opening.frame}`;
+Opening.maximize();
+expect('nor one that does it as it opens', !t._maximized.has(Opening) && `${Opening.frame}` === tile,
+    `${Opening.frame}`);
+pass(300);
+byUser(Opening);
+expect('after a click in it, it floats over its tile', t._maximized.has(Opening) && Opening.is_maximized());
+Opening.unmaximize();
+pass(5000);
+Opening.maximize();
+expect('but not long after that click', !t._maximized.has(Opening) && `${Opening.frame}` === tile);
+close(t, Opening, [A, C]);
+check('the layout is as it was', A, '768x960+0+0');
 for (const window of [A, C])
     window.disconnectObject();
 
