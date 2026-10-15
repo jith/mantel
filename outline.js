@@ -30,44 +30,59 @@ const OUTLINED = new Set([
 ]);
 
 // Widen what the actor drew, cut the actor back out, and paint the band left.
-const Silhouette = GObject.registerClass(
+const DECLARATIONS = `
+    uniform vec2 spread;   // the border width, in texture coordinates
+    uniform vec2 pixel;    // one logical pixel, the same
+    uniform vec4 tint;     // the accent colour, premultiplied
+
+    float solid(vec2 at) {
+        return smoothstep(${(SOLID - FEATHER).toFixed(3)},
+                          ${(SOLID + FEATHER).toFixed(3)},
+                          texture2D(cogl_sampler0, at).a);
+    }`;
+
+const CODE = `
+    vec2 uv = cogl_tex_coord_in[0].st;
+
+    // Sampled on a square rather than a circle, so a square corner stays
+    // square.
+    float outer = 0.0;
+    for (int i = 0; i < ${SAMPLES}; i++) {
+        float turn = float(i) * ${(2 * Math.PI / SAMPLES).toFixed(6)};
+        vec2 towards = vec2(cos(turn), sin(turn));
+        towards /= max(abs(towards.x), abs(towards.y));
+        outer = max(outer, solid(uv + spread * towards));
+    }
+
+    // Eroded by a pixel, so no gap opens under the window's edge at a
+    // fractional scale.
+    float inner = solid(uv);
+    inner = min(inner, solid(uv + vec2(pixel.x, 0.0)));
+    inner = min(inner, solid(uv - vec2(pixel.x, 0.0)));
+    inner = min(inner, solid(uv + vec2(0.0, pixel.y)));
+    inner = min(inner, solid(uv - vec2(0.0, pixel.y)));
+
+    cogl_color_out = tint * outer * (1.0 - inner);`;
+
+// GNOME 51 dropped Shell.GLSLEffect for Clutter.ShaderEffect, which is asked
+// for its snippet and sets a uniform by name.
+const Silhouette = Shell.GLSLEffect ? GObject.registerClass(
 class Silhouette extends Shell.GLSLEffect {
     vfunc_build_pipeline() {
-        const declarations = `
-            uniform vec2 spread;   // the border width, in texture coordinates
-            uniform vec2 pixel;    // one logical pixel, the same
-            uniform vec4 tint;     // the accent colour, premultiplied
+        this.add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, DECLARATIONS, CODE, false);
+    }
 
-            float solid(vec2 at) {
-                return smoothstep(${(SOLID - FEATHER).toFixed(3)},
-                                  ${(SOLID + FEATHER).toFixed(3)},
-                                  texture2D(cogl_sampler0, at).a);
-            }`;
+    setUniform(name, values) {
+        this.set_uniform_float(this.get_uniform_location(name), values.length, values);
+    }
+}) : GObject.registerClass(
+class Silhouette extends Clutter.ShaderEffect {
+    vfunc_get_static_snippet() {
+        return Cogl.Snippet.new(Cogl.SnippetHook.FRAGMENT, DECLARATIONS, CODE);
+    }
 
-        const code = `
-            vec2 uv = cogl_tex_coord_in[0].st;
-
-            // Sampled on a square rather than a circle, so a square corner
-            // stays square.
-            float outer = 0.0;
-            for (int i = 0; i < ${SAMPLES}; i++) {
-                float turn = float(i) * ${(2 * Math.PI / SAMPLES).toFixed(6)};
-                vec2 towards = vec2(cos(turn), sin(turn));
-                towards /= max(abs(towards.x), abs(towards.y));
-                outer = max(outer, solid(uv + spread * towards));
-            }
-
-            // Eroded by a pixel, so no gap opens under the window's edge at
-            // a fractional scale.
-            float inner = solid(uv);
-            inner = min(inner, solid(uv + vec2(pixel.x, 0.0)));
-            inner = min(inner, solid(uv - vec2(pixel.x, 0.0)));
-            inner = min(inner, solid(uv + vec2(0.0, pixel.y)));
-            inner = min(inner, solid(uv - vec2(0.0, pixel.y)));
-
-            cogl_color_out = tint * outer * (1.0 - inner);`;
-
-        this.add_glsl_snippet(Cogl.SnippetHook.FRAGMENT, declarations, code, false);
+    setUniform(name, values) {
+        this.set_uniform_float(name, values.length, values);
     }
 });
 
@@ -87,9 +102,6 @@ export class FocusOutline {
         this._widget.add_child(this._clone);
 
         this._effect = new Silhouette();
-        this._spread = this._effect.get_uniform_location('spread');
-        this._pixel = this._effect.get_uniform_location('pixel');
-        this._tint = this._effect.get_uniform_location('tint');
         this._widget.add_effect(this._effect);
 
         global.window_group.add_child(this._widget);
@@ -147,9 +159,8 @@ export class FocusOutline {
         const size = `${width}x${height}`;
         if (size !== this._size) {
             this._size = size;
-            this._effect.set_uniform_float(this._spread, 2,
-                [this._width / width, this._width / height]);
-            this._effect.set_uniform_float(this._pixel, 2, [1 / width, 1 / height]);
+            this._effect.setUniform('spread', [this._width / width, this._width / height]);
+            this._effect.setUniform('pixel', [1 / width, 1 / height]);
         }
 
         this._restack();
@@ -166,7 +177,7 @@ export class FocusOutline {
         const colour = this._widget.get_theme_node().get_border_color(St.Side.TOP);
         const alpha = colour.alpha / 255;
 
-        this._effect.set_uniform_float(this._tint, 4, [
+        this._effect.setUniform('tint', [
             colour.red / 255 * alpha,
             colour.green / 255 * alpha,
             colour.blue / 255 * alpha,

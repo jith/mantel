@@ -1,5 +1,6 @@
 import {FocusOutline} from './.outline-under-test.mjs';
-import {Clutter, Meta, SHADOW, Window, accent, focus, global, raise, restacks, stack} from './outline-stubs.mjs';
+import {Clutter, Meta, SHADOW, Shell, Window, accent, focus, global, raise, restacks, shell, stack}
+    from './outline-stubs.mjs';
 
 let failures = 0;
 const expect = (label, ok, detail) => {
@@ -14,7 +15,9 @@ const clone = widget.children[0];
 const box = () => `${widget.width}x${widget.height}+${widget.x}+${widget.y}`;
 const uniform = name => (effect.uniforms.get(name) ?? []).map(v => v.toFixed(5)).join(',');
 
-console.log('\nnothing to outline yet');
+console.log(`\nGNOME ${shell}: nothing to outline yet`);
+expect('built on the effect this shell has',
+    effect instanceof (Shell.GLSLEffect ?? Clutter.ShaderEffect), effect.constructor.name);
 expect('hidden with no focused window', !widget.visible, `visible=${widget.visible}`);
 expect('the shape is built once', effect.snippets.length === 1,
     `${effect.snippets.length} snippets`);

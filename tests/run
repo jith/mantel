@@ -27,6 +27,7 @@ node ./borrowed.test.mjs
 { echo "import {Clutter, Cogl, GObject, Meta, Shell, St, global} from '$PWD/outline-stubs.mjs';"
   sed -E '/^import .*;$/d' ../outline.js; } > ./.outline-under-test.mjs
 node ./outline.test.mjs
+MANTEL_SHELL=51 node ./outline.test.mjs
 
 # The preferences pages run against the real GTK and libadwaita, which needs
 # gjs and a display but no shell. Their one shell import, gettext, is stubbed.

@@ -113,7 +113,7 @@ Each takes effect immediately — no logout needed to toggle it.
 
 ## Requirements
 
-GNOME Shell 50.
+GNOME Shell 50 and 51.
 
 GNOME 48 and 49 are not supported yet. Their `ActivitiesButton` handles clicks
 through `vfunc_event()` rather than a `Clutter.ClickGesture`, which the numbered

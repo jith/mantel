@@ -44,40 +44,73 @@ class Widget extends Signals {
 }
 export const St = {Widget, Side: {TOP: 0}};
 
+// An effect as either shell gives one: it remembers its snippet and the
+// uniforms it was handed, by name.
+class Effect {
+    constructor() {
+        this.snippets = [];
+        this.uniforms = new Map();
+        this.sets = 0;
+        this.repaints = 0;
+    }
+
+    setFloat(name, size, values) {
+        if (values.length !== size)
+            throw new Error(`${name}: ${values.length} values for a vec${size}`);
+        this.uniforms.set(name, values);
+        this.sets++;
+    }
+
+    queue_repaint() { this.repaints++; }
+}
+
+// GNOME 51: the snippet is asked for, and a uniform is set by name.
+class ShaderEffect extends Effect {
+    constructor() {
+        super();
+        this.snippets.push(this.vfunc_get_static_snippet());
+    }
+
+    set_uniform_float(name, size, values) { this.setFloat(name, size, values); }
+}
+
+// GNOME 50: the pipeline is built as the effect is constructed, which is what
+// gives out the uniform locations.
+class GLSLEffect extends Effect {
+    constructor() {
+        super();
+        this.vfunc_build_pipeline();
+    }
+
+    add_glsl_snippet(hook, declarations, code) {
+        this.snippets.push({hook, declarations, code});
+    }
+
+    get_uniform_location(name) { return `at ${name}`; }
+    set_uniform_float(location, size, values) {
+        if (!location.startsWith('at '))
+            throw new Error(`${location} is not a location`);
+        this.setFloat(location.slice(3), size, values);
+    }
+}
+
+export const shell = process.env.MANTEL_SHELL ?? '50';
+
 export const Clutter = {
     Clone: class Clone {
         constructor(props) { Object.assign(this, {source: null}, props); }
     },
+    ShaderEffect,
 };
 
-export const Cogl = {SnippetHook: {FRAGMENT: 'fragment'}};
+export const Cogl = {
+    SnippetHook: {FRAGMENT: 'fragment'},
+    Snippet: {new: (hook, declarations, code) => ({hook, declarations, code})},
+};
 
 export const GObject = {registerClass: (...args) => args[args.length - 1]};
 
-// Shell.GLSLEffect builds its pipeline as it is constructed, which is what
-// gives out the uniform locations, so the stub does the same.
-export const Shell = {
-    GLSLEffect: class GLSLEffect {
-        constructor() {
-            this.snippets = [];
-            this.uniforms = new Map();
-            this.sets = 0;
-            this.repaints = 0;
-            this.vfunc_build_pipeline();
-        }
-        add_glsl_snippet(hook, declarations, code) {
-            this.snippets.push({hook, declarations, code});
-        }
-        get_uniform_location(name) { return name; }
-        set_uniform_float(location, size, values) {
-            if (values.length !== size)
-                throw new Error(`${location}: ${values.length} values for a vec${size}`);
-            this.uniforms.set(location, values);
-            this.sets++;
-        }
-        queue_repaint() { this.repaints++; }
-    },
-};
+export const Shell = shell === '50' ? {GLSLEffect} : {};
 
 export const global = {
     window_group: {
