@@ -14,6 +14,11 @@ there are, but not which is which. Mantel replaces them with numbers.
 - **Click a number** to switch to that workspace.
 - **`Super`+`1`…`0`** jumps straight to a workspace, and **creates it if it does
   not exist yet**, so you are not limited to however many happen to be open.
+  With a fixed number of workspaces, the ones added this way close again from
+  the end once they are empty and you have left them, down to the number you
+  had before: with four, going to 9 and back to an app on 6 closes 7 to 9, and
+  closing that app closes 5 and 6 too. The workspace you are on stays until you
+  leave it.
 - The bottom-centre workspace switcher popup is gone — the top bar already says
   which workspace is active, so the popup is redundant.
 

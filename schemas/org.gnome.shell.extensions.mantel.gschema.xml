@@ -184,6 +184,11 @@
       <summary>Layout to take up again</summary>
       <description>The layout as auto-tiling left it when it last stopped, by window, taken up again when it next starts, as it does after every screen lock. Not for editing.</description>
     </key>
+    <key name="borrowed-num-workspaces" type="i">
+      <default>0</default>
+      <summary>Number of workspaces to go back to</summary>
+      <description>How many workspaces there were before a workspace shortcut added more, while workspaces are fixed in number. The added ones are removed again from the end once they are empty and left. Unset when none was added. Not for editing.</description>
+    </key>
     <!-- What auto-tiling changed outside Mantel, kept on disk so it can be
          handed back even after a logout, which gives no chance to do it
          then. Unset means nothing is owed; a value set here is one on loan. -->

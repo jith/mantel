@@ -11,7 +11,7 @@ import {AutoTile} from './tiling.js';
 
 // The setting key, the field the instance is kept in, and its constructor.
 const FEATURES = [
-    {key: 'workspace-numbers', field: '_workspaces', create: () => new WorkspaceNumbers()},
+    {key: 'workspace-numbers', field: '_workspaces', create: settings => new WorkspaceNumbers(settings)},
     {key: 'autohide', field: '_autohide', create: () => new PanelAutohide()},
     {key: 'auto-tile', field: '_autoTile', create: settings => new AutoTile(settings)},
 ];
