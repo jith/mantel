@@ -1,7 +1,7 @@
 import {AutoTile} from './.tree-under-test.mjs';
 import {tileable} from './.rules-under-test.mjs';
 import {readFileSync} from 'node:fs';
-import {BORROWED_SHORTCUTS, SHORTCUT_GROUPS} from '../shortcuts.js';
+import {SHORTCUT_GROUPS} from '../shortcuts.js';
 import {FocusOutline, GDesktopEnums, Meta, Settings, apps, bound, chords as press, clockStep, global,
     hold, limit, pass, pump, queued, rect, release, schemas, setFocus, setFocusMode, setMru, setPointer,
     setWorkspaceIndex, taken, tick, touch, win} from './stubs.mjs';
@@ -687,11 +687,11 @@ t._bindKeys(false);
 expect('nor taken from it afterwards', taken.has('focus-left') && !bound.length);
 taken.clear();
 const records = new Set([...schemaText.matchAll(/<key name="borrowed-([^"]+)"/g)].map(match => match[1]));
-const lent = [...Object.values(BORROWED_SHORTCUTS).flat(), ...t._borrow().map(loan => loan._key)];
+const lent = t._borrow().map(loan => loan._key);
 expect('every loan has a record key', lent.every(key => records.has(key)),
     lent.filter(key => !records.has(key)).join() || `${new Set(lent).size} loans`);
-expect('only keys a schema has are borrowed', !lent.includes('restore-window') ||
-    !t._borrow().some(loan => loan._key === 'restore-window'));
+expect('no shortcut is borrowed', !t._borrow().some(loan => loan._type === 'strv'),
+    lent.join());
 
 section('borrowed settings  (lent while tiling, handed back after)');
 const loan = key => t._borrow().find(l => l._key === key);
@@ -704,10 +704,6 @@ for (const [layout, kept] of [
     expect(`buttons "${layout}"`, loan('button-layout')._change(layout) === kept);
 for (const [action, kept] of [['toggle-maximize', 'none'], ['minimize', 'none'], ['lower', null]])
     expect(`double click "${action}"`, loan('action-double-click-titlebar')._change(action) === kept);
-const toMonitor = loan('move-to-monitor-left');
-expect('GNOME\'s default shared with swap is lent alone',
-    toMonitor._change(['<Super><Shift>Left', '<Super>KP_Left']).join() === '<Super>KP_Left');
-expect('a chord the user chose is kept', toMonitor._change(['<Super><Shift><Alt>Left']) === null);
 for (const loanOf of [...t._borrow()])
     loanOf.giveBack();
 
@@ -728,11 +724,10 @@ t.enable();
 expect('open windows are adopted', shape(t) === 'E1,E2', shape(t));
 expect('the title bar loses minimize and maximize', wm.get_string('button-layout') === ':close');
 expect('the double click does nothing', wm.get_string('action-double-click-titlebar') === 'none');
-expect('maximize and minimize keys are off', !keys.get_strv('minimize').length &&
-    !keys.get_strv('toggle-maximized').length);
-expect('as are the other extension\'s arrows', ta.get_strv('tile-left-half').length === 0 &&
-    ta.get_strv('tile-maximize').length === 0);
-expect('and its outline and drag tiling', ta.get_int('focus-hint') === 0 &&
+expect('every shortcut is left as it is', !Object.values(schemas).some(schema =>
+    Object.entries(schema.user).some(([key, value]) => Array.isArray(value) &&
+        !(schema === keys && ['toggle-maximized', 'move-to-monitor-right'].includes(key)))));
+expect('the other extension\'s outline and drag tiling are off', ta.get_int('focus-hint') === 0 &&
     ta.get_int('default-move-mode') === 3);
 expect('edge tiling is off and floats open centred', !mutter.get_boolean('edge-tiling') &&
     mutter.get_boolean('center-new-windows'));
@@ -744,10 +739,8 @@ expect('switched off, the focus mode goes back', wm.get_string('focus-mode') ===
 expect('and nothing else does', wm.get_string('button-layout') === ':close');
 t._settings.set_boolean('focus-follows-mouse', true);
 expect('on again, it follows again', wm.get_string('focus-mode') === 'sloppy');
-expect('GNOME gives up the chords it shares with Mantel', !keys.get_strv('move-to-monitor-left').length &&
-    !shell.get_strv('toggle-quick-settings').length && !zoom.get_strv('magnifier-zoom-in').length);
-expect('but keeps one the user chose', keys.get_strv('move-to-monitor-right').join() ===
-    '<Super><Shift><Alt>Right');
+expect('GNOME keeps the chords it shares with Mantel', keys.get_strv('move-to-monitor-left').length &&
+    shell.get_strv('toggle-quick-settings').length && zoom.get_strv('magnifier-zoom-in').length);
 expect('every chord is bound', bound.length === chords.size, `${bound.length}`);
 setFocus(E2);
 t._togglePop();

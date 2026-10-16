@@ -119,7 +119,7 @@ expect('Backspace disables it', settings.get_strv('toggle-float').length === 0,
 
 const cancelled = press('Swap with the window left', Gdk.KEY_Escape, 0);
 expect('Escape changes nothing, and closes', settings.get_strv('swap-left')[0] ===
-    '<Super><Shift>Left' && window.get_visible_dialog() !== cancelled,
+    '<Super><Control><Shift>Left' && window.get_visible_dialog() !== cancelled,
     settings.get_strv('swap-left').join(','));
 
 print('\nsomeone else\'s chord  (confirmed, and theirs left alone)');
@@ -129,21 +129,22 @@ expect('GNOME’s chord is asked about first', /not predictable/.test(confirm?.b
     confirm?.body ?? 'no dialog');
 confirm.emit('response', 'cancel');
 confirm.close();
-expect('cancelling keeps the old one', settings.get_strv('scratchpad')[0] === '<Super>s',
+expect('cancelling keeps the old one', settings.get_strv('scratchpad')[0] === '<Super><Control>s',
     settings.get_strv('scratchpad').join(','));
 expect('GNOME’s own shortcut is untouched',
     monitorKeys.get_strv('switch-monitor').join(',') === monitorBefore, monitorBefore);
 
-// GNOME's own maximize chord is switched off while windows are tiled, the
-// only time Mantel's chords are bound, so the two never meet.
+// GNOME's shortcuts stay bound while windows are tiled, so its maximize
+// chord is asked about like any other.
 const maximize = new Gio.Settings({schema_id: 'org.gnome.desktop.wm.keybindings'});
 const [maximizeChord] = maximize.get_default_value('toggle-maximized').deepUnpack();
 const [, maxKey, maxMods] = Gtk.accelerator_parse(maximizeChord);
 press('Show or hide the scratchpad', maxKey, maxMods);
-expect('a chord auto-tiling switches off is free',
-    !window.get_visible_dialog() && settings.get_strv('scratchpad')[0] === maximizeChord,
-    settings.get_strv('scratchpad').join(','));
-settings.reset('scratchpad');
+confirm = window.get_visible_dialog();
+expect('GNOME’s maximize chord is asked about too', /not predictable/.test(confirm?.body ?? ''),
+    confirm?.body ?? 'no dialog');
+confirm.emit('response', 'cancel');
+confirm.close();
 
 print('\nreset  (back to the defaults)');
 for (const key of settings.settings_schema.list_keys())

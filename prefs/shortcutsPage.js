@@ -11,7 +11,7 @@ import Gtk from 'gi://Gtk';
 
 import {gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-import {BORROWED_SHORTCUTS, SHORTCUT_GROUPS, unbind} from '../shortcuts.js';
+import {SHORTCUT_GROUPS} from '../shortcuts.js';
 
 // GNOME's shortcuts and those of extensions installed for everyone. Custom
 // shortcuts are one relocatable schema each, read separately.
@@ -41,8 +41,7 @@ function chordOf(display, accelerator) {
     return `${keycodes?.[0] ?? keyval}:${mods}`;
 }
 
-// Every chord something other than Mantel has while auto-tiling runs, which
-// is when Mantel's are bound, with a name to show.
+// Every chord something other than Mantel has, with a name to show.
 function otherShortcuts(display) {
     const source = Gio.SettingsSchemaSource.get_default();
     const found = [];
@@ -64,9 +63,7 @@ function otherShortcuts(display) {
             if (schemaKey.get_value_type().dup_string() !== 'as')
                 continue;
 
-            const accelerators = settings.get_strv(key);
-            const lent = BORROWED_SHORTCUTS[id]?.includes(key) ? unbind(key)(accelerators) : null;
-            for (const accelerator of lent ?? accelerators)
+            for (const accelerator of settings.get_strv(key))
                 add(accelerator, schemaKey.get_summary() || key);
         }
     }

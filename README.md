@@ -63,9 +63,9 @@ space back to the window it was split from.
 - **Minimum sizes are respected.** A window is never given less room than it
   will take. One that cannot fit beside the others either way round opens
   floating instead of being drawn over them.
-- **Maximize floats.** GNOME's title bar buttons and shortcuts for minimize
-  and maximize are removed while tiling (and given back afterwards), and a
-  double click on a title bar does nothing. Apps that draw their own title
+- **Maximize floats.** GNOME's title bar buttons for minimize and maximize
+  are removed while tiling (and given back afterwards), and a double click on
+  a title bar does nothing. Apps that draw their own title
   bar — Flutter apps such as Ubuntu's App Center and Security
   Center, Electron apps such as VS Code — keep their buttons. Maximizing a
   tiled window, or `Super`+`Alt`+`F`, floats it over its tile, above the
@@ -84,11 +84,11 @@ space back to the window it was split from.
 - Focus, swap, resize, split, pseudo-tile, pop-out and scratchpad keys are
   listed, and can be changed, in **Settings → Shortcuts**. Focus and swap
   carry on to the next monitor past the edge of the layout; resize grows or
-  shrinks a floating window. GNOME's (and Ubuntu Tiling Assistant's)
-  shortcuts that would maximize or tile a window are switched off meanwhile,
-  as are edge tiling and its drag previews; GNOME's quick settings, zoom and
-  move-to-monitor shortcuts give up only the chords Mantel uses by default.
-  All are handed back when auto-tiling is turned off.
+  shrinks a floating window. The defaults are chords GNOME and Ubuntu do not
+  use, such as `Super`+`Ctrl`+arrows to move focus. GNOME's own shortcuts are
+  left as they are: one that maximizes a window floats it over its tile, and
+  a window tiled or moved by one is put back in its tile. Edge tiling and its
+  drag previews are switched off meanwhile, and handed back afterwards.
 - Picture-in-picture opens small in the top right corner, on every workspace.
 - The layout survives the lock screen.
 

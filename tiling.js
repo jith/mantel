@@ -17,7 +17,6 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {BorrowedSetting} from './borrowed.js';
 import {FocusOutline} from './outline.js';
 import {floatRule, followsWorkspaces, minSize, pinned, tileable} from './rules.js';
-import {BORROWED_SHORTCUTS, unbind} from './shortcuts.js';
 
 const TILING_ASSISTANT = 'org.gnome.shell.extensions.tiling-assistant';
 const OUTLINE_HINTS = [1, 3];
@@ -47,8 +46,6 @@ const LOANS = [
     ['org.gnome.mutter', 'center-new-windows', 'boolean', on => on ? null : true],
     [TILING_ASSISTANT, 'focus-hint', 'int', hint => OUTLINE_HINTS.includes(hint) ? 0 : null],
     [TILING_ASSISTANT, 'default-move-mode', 'int', mode => mode === IGNORE_DRAGS ? null : IGNORE_DRAGS],
-    ...Object.entries(BORROWED_SHORTCUTS).flatMap(([schema, keys]) =>
-        keys.map(key => [schema, key, 'strv', unbind(key)])),
 ];
 
 const SETTLE_MS = 250;
