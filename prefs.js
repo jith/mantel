@@ -25,12 +25,12 @@ export default class MantelPreferences extends ExtensionPreferences {
         page.add(group);
 
         const rows = [
+            ['auto-tile', _('Tile windows as they open'),
+                _('The first window on a workspace takes all of it, and each one after that splits the focused window. Maximizing a tiled window floats it until it is restored')],
             ['workspace-numbers', _('Workspace numbers'),
                 _('Number the top bar indicator, click a number to switch, and reach a workspace that does not exist yet with Super+1…0. Workspaces added that way go again once they are empty')],
             ['autohide', _('Auto-hide the top bar'),
                 _('Hide the bar when a window needs the space; push the pointer at the top edge to bring it back')],
-            ['auto-tile', _('Tile windows as they open'),
-                _('The first window on a workspace takes all of it, and each one after that splits the focused window. Maximizing a tiled window floats it until it is restored')],
         ];
 
         for (const [key, title, subtitle] of rows) {

@@ -38,8 +38,10 @@ walk(window);
 const row = title => rows.find(r => r.title === title);
 
 print('\nthe page  (a switch per feature, the layout under tiling)');
-for (const [key, title] of [['workspace-numbers', 'Workspace numbers'],
-    ['autohide', 'Auto-hide the top bar'], ['auto-tile', 'Tile windows as they open']]) {
+expect('tiling is the first feature listed', rows.findIndex(r => r.title === 'Tile windows as they open') <
+    rows.findIndex(r => r.title === 'Workspace numbers'));
+for (const [key, title] of [['auto-tile', 'Tile windows as they open'],
+    ['workspace-numbers', 'Workspace numbers'], ['autohide', 'Auto-hide the top bar']]) {
     row(title).active = !settings.get_boolean(key);
     expect(`"${title}" switches ${key}`, row(title).active === settings.get_boolean(key));
     settings.reset(key);
@@ -49,6 +51,8 @@ expect('focus follows the mouse by default', hover.active && settings.get_boolea
 hover.active = false;
 expect('and can be switched off', !settings.get_boolean('focus-follows-mouse'));
 settings.reset('focus-follows-mouse');
+expect('usable while tiling is on, as it is by default', hover.is_sensitive());
+settings.set_boolean('auto-tile', false);
 expect('greyed out while tiling is off', !hover.is_sensitive());
 settings.set_boolean('auto-tile', true);
 expect('and usable once it is on', hover.is_sensitive());

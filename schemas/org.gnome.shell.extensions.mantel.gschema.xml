@@ -13,7 +13,7 @@
       <description>Hide the top bar while a window overlaps it, and reveal it when the pointer pushes against the top edge of the screen.</description>
     </key>
     <key name="auto-tile" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Tile windows as they open</summary>
       <description>Give the first window on a workspace the whole of it, and split the focused window to make room for each one after that. Minimize and maximize lose their title bar buttons and their shortcuts while it is on, and get them back when it is switched off; a tiled window that maximizes anyway floats above the others until it is unmaximized, and then takes its tile back.</description>
     </key>

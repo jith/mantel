@@ -1,52 +1,10 @@
 # Mantel
 
-Numbered workspaces, a dock-style auto-hiding top bar, and Hyprland-style
-auto-tiling for GNOME Shell.
+Hyprland-style auto-tiling for GNOME Shell, with numbered workspaces and a
+dock-style auto-hiding top bar.
 
 Each feature can be turned off on its own, so you can take one and leave the
 others.
-
-## Workspace numbers
-
-GNOME shows workspaces in the top bar as anonymous dots — you can see how many
-there are, but not which is which. Mantel replaces them with numbers.
-
-- **Click a number** to switch to that workspace.
-- **`Super`+`1`…`0`** jumps straight to a workspace, and **creates it if it does
-  not exist yet**, so you are not limited to however many happen to be open.
-  With a fixed number of workspaces, the ones added this way close again from
-  the end once they are empty and you have left them, down to the number you
-  had before: with four, going to 9 and back to an app on 6 closes 7 to 9, and
-  closing that app closes 5 and 6 too. The workspace you are on stays until you
-  leave it.
-- The bottom-centre workspace switcher popup is gone — the top bar already says
-  which workspace is active, so the popup is redundant.
-
-The numbers inherit the panel's own foreground colour, so they read correctly on
-a light or a dark top bar without any theming.
-
-## Auto-hide the top bar
-
-The bar stays out of the way while a window needs the space, and comes back when
-you push the pointer against the top edge of the screen.
-
-This is *intellihide*, not plain auto-hide: the bar is **visible whenever nothing
-overlaps it** — an empty workspace, or windows that sit clear of the top — and
-only leaves when a window is actually in the way. It follows the same rules,
-timings and pressure threshold as the Ubuntu Dock, so both screen edges behave
-identically if you use both.
-
-It stays visible in the overview and while a panel menu is open, and it will not
-intrude over a fullscreen window.
-
-### One behaviour worth knowing about
-
-While auto-hide is enabled, the top bar **stops reserving screen space**. Windows
-keep the full height of the screen and the bar floats over them when revealed.
-
-That is deliberate: it means nothing resizes when you peek at the clock. The
-trade-off is that windows are now free to sit flush against the top of the
-screen, and new windows may be placed there.
 
 ## Auto-tiling
 
@@ -91,8 +49,16 @@ space back to the window it was split from.
   drag previews are switched off meanwhile, and handed back afterwards.
 - Picture-in-picture opens small in the top right corner, on every workspace.
 - The layout survives the lock screen.
+- **Every kind of app is laid out**: GTK and libadwaita, Qt, Flutter,
+  Electron and Chromium apps (VS Code, Codex, Slack, …), Java, Wine, and
+  anything else that runs under XWayland. mutter takes an X11 window that
+  asks to be exactly the size of its monitor for one asking to be
+  fullscreen, which is what a maximized Electron app does as it is resized
+  once the top bar no longer takes room. That guess is switched off while
+  tiling or auto-hide is on, and a window left fullscreen and maximized at
+  once, with no click or key press asking for it, is put back in its tile.
 
-It is off by default.
+It is on by default.
 
 To see why a window was tiled or floated, turn on logging and watch the
 journal:
@@ -103,15 +69,57 @@ gsettings --schemadir ~/.local/share/gnome-shell/extensions/mantel@jith.github.i
 journalctl -f -o cat /usr/bin/gnome-shell | grep Mantel
 ```
 
+## Workspace numbers
+
+GNOME shows workspaces in the top bar as anonymous dots — you can see how many
+there are, but not which is which. Mantel replaces them with numbers.
+
+- **Click a number** to switch to that workspace.
+- **`Super`+`1`…`0`** jumps straight to a workspace, and **creates it if it does
+  not exist yet**, so you are not limited to however many happen to be open.
+  With a fixed number of workspaces, the ones added this way close again from
+  the end once they are empty and you have left them, down to the number you
+  had before: with four, going to 9 and back to an app on 6 closes 7 to 9, and
+  closing that app closes 5 and 6 too. The workspace you are on stays until you
+  leave it.
+- The bottom-centre workspace switcher popup is gone — the top bar already says
+  which workspace is active, so the popup is redundant.
+
+The numbers inherit the panel's own foreground colour, so they read correctly on
+a light or a dark top bar without any theming.
+
+## Auto-hide the top bar
+
+The bar stays out of the way while a window needs the space, and comes back when
+you push the pointer against the top edge of the screen.
+
+This is *intellihide*, not plain auto-hide: the bar is **visible whenever nothing
+overlaps it** — an empty workspace, or windows that sit clear of the top — and
+only leaves when a window is actually in the way. It follows the same rules,
+timings and pressure threshold as the Ubuntu Dock, so both screen edges behave
+identically if you use both.
+
+It stays visible in the overview and while a panel menu is open, and it will not
+intrude over a fullscreen window.
+
+### One behaviour worth knowing about
+
+While auto-hide is enabled, the top bar **stops reserving screen space**. Windows
+keep the full height of the screen and the bar floats over them when revealed.
+
+That is deliberate: it means nothing resizes when you peek at the clock. The
+trade-off is that windows are now free to sit flush against the top of the
+screen, and new windows may be placed there.
+
 ## Settings
 
 In **Extensions → Mantel → Settings**:
 
 | Setting | Default |
 | --- | --- |
+| Tile windows as they open | on |
 | Workspace numbers | on |
 | Auto-hide the top bar | on |
-| Tile windows as they open | off |
 | Focus follows the mouse, while tiling | on |
 
 Each takes effect immediately — no logout needed to toggle it.
