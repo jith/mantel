@@ -41,7 +41,8 @@ print('\nthe page  (a switch per feature, the layout under tiling)');
 expect('tiling is the first feature listed', rows.findIndex(r => r.title === 'Tile windows as they open') <
     rows.findIndex(r => r.title === 'Workspace numbers'));
 for (const [key, title] of [['auto-tile', 'Tile windows as they open'],
-    ['workspace-numbers', 'Workspace numbers'], ['autohide', 'Auto-hide the top bar']]) {
+    ['workspace-numbers', 'Workspace numbers'], ['autohide', 'Auto-hide the top bar'],
+    ['guard-logout', 'Ask apps before logging out']]) {
     row(title).active = !settings.get_boolean(key);
     expect(`"${title}" switches ${key}`, row(title).active === settings.get_boolean(key));
     settings.reset(key);

@@ -11,3 +11,4 @@ schemas/gschemas.compiled
 .float-under-test.js
 .general-under-test.js
 .extension-under-test.mjs
+.logout-under-test.mjs

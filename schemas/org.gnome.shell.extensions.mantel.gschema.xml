@@ -17,6 +17,11 @@
       <summary>Tile windows as they open</summary>
       <description>Give the first window on a workspace the whole of it, and split the focused window to make room for each one after that. Minimize and maximize lose their title bar buttons and their shortcuts while it is on, and get them back when it is switched off; a tiled window that maximizes anyway floats above the others until it is unmaximized, and then takes its tile back.</description>
     </key>
+    <key name="guard-logout" type="b">
+      <default>true</default>
+      <summary>Ask apps before logging out</summary>
+      <description>Before logging out, powering off or restarting, ask every app window to close, as closing it by hand would. If an app asks something first, such as whether to save changes or close a window of tabs, or does not close, the logout is cancelled, the app is brought forward, and a warning says which apps are waiting.</description>
+    </key>
     <key name="float-apps" type="as">
       <default>['org.gnome.Calculator', 'gnome-calculator', 'org.gnome.Characters', 'org.gnome.clocks', 'org.gnome.Weather', 'org.gnome.font-viewer', 'org.gnome.Extensions', 'org.gnome.Shell.Extensions', 'org.gnome.NautilusPreviewer', 'org.gnome.Loupe', 'org.gnome.eog', 'org.gnome.Papers', 'org.gnome.Evince', 'org.gnome.Showtime', 'org.gnome.Totem', 'net.nokyan.Resources', 'gnome-system-monitor', 'org.gnome.SystemMonitor', 'org.pulseaudio.pavucontrol', 'blueman-manager', 'nm-connection-editor', 'mpv', 'imv', '1password', 'com.onepassword.OnePassword', 'bitwarden', 'localsend*', 'steam']</default>
       <summary>Apps that open floating</summary>

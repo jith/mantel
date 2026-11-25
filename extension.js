@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Mantel: numbered workspaces, top bar auto-hide and auto-tiling. Each
+// Mantel: auto-tiling, numbered workspaces, top bar auto-hide, and apps
+// asked before logging out. Each
 // feature is its own module, started and stopped from its own setting.
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -8,12 +9,14 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {WorkspaceNumbers} from './workspaces.js';
 import {PanelAutohide} from './autohide.js';
 import {AutoTile} from './tiling.js';
+import {LogoutGuard} from './logout.js';
 
 // The setting key, the field the instance is kept in, and its constructor.
 const FEATURES = [
     {key: 'workspace-numbers', field: '_workspaces', create: settings => new WorkspaceNumbers(settings)},
     {key: 'autohide', field: '_autohide', create: () => new PanelAutohide()},
     {key: 'auto-tile', field: '_autoTile', create: settings => new AutoTile(settings)},
+    {key: 'guard-logout', field: '_logoutGuard', create: () => new LogoutGuard()},
 ];
 
 // A feature that throws must not take the others with it.

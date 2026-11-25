@@ -111,6 +111,25 @@ That is deliberate: it means nothing resizes when you peek at the clock. The
 trade-off is that windows are now free to sit flush against the top of the
 screen, and new windows may be placed there.
 
+## Logging out with unsaved work
+
+GNOME ends every app as it logs out, powers off or restarts, without
+letting it ask about anything: a document with unsaved changes, a browser
+window of tabs, a terminal still running a command. Mantel asks each app
+window to close first, as closing it by hand would.
+
+- Apps that close are closed, and the logout goes ahead.
+- An app that asks something first — *Save changes?*, *Close all tabs?* —
+  or that has not closed after eight seconds holds the session open. GNOME
+  is told to cancel, the app is brought forward, and a warning says which
+  apps are waiting and why. Answer them, then log out again.
+
+This covers the logout, power off and restart buttons and the dialog's
+countdown, but not a session ended from outside GNOME, such as
+`systemctl poweroff`. A browser whose windows are closed one by one may
+restore only the last one next time; the others are under *Recently
+closed*.
+
 ## Settings
 
 In **Extensions → Mantel → Settings**:
@@ -120,6 +139,7 @@ In **Extensions → Mantel → Settings**:
 | Tile windows as they open | on |
 | Workspace numbers | on |
 | Auto-hide the top bar | on |
+| Ask apps before logging out | on |
 | Focus follows the mouse, while tiling | on |
 
 Each takes effect immediately — no logout needed to toggle it.
@@ -151,6 +171,7 @@ gnome-extensions pack --force \
   --extra-source=outline.js \
   --extra-source=borrowed.js \
   --extra-source=shortcuts.js \
+  --extra-source=logout.js \
   --extra-source=prefs \
   --schema=schemas/org.gnome.shell.extensions.mantel.gschema.xml
 gnome-extensions install --force mantel@jith.github.io.shell-extension.zip

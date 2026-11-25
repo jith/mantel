@@ -4,7 +4,7 @@
 # attempt.
 set -euo pipefail
 cd "$(dirname "$0")"
-trap 'rm -f ./.rules-under-test.mjs ./.tree-under-test.mjs ./.outline-under-test.mjs ./.borrowed-under-test.mjs ./.prefs-under-test.js ./.float-under-test.js ./.general-under-test.js ./.extension-under-test.mjs' EXIT
+trap 'rm -f ./.rules-under-test.mjs ./.tree-under-test.mjs ./.outline-under-test.mjs ./.borrowed-under-test.mjs ./.prefs-under-test.js ./.float-under-test.js ./.general-under-test.js ./.extension-under-test.mjs ./.logout-under-test.mjs' EXIT
 
 cp ../borrowed.js ./.borrowed-under-test.mjs
 
@@ -18,10 +18,14 @@ cp ../borrowed.js ./.borrowed-under-test.mjs
 
 node ./tree.test.mjs
 
-{ echo "const {Extension, WorkspaceNumbers, PanelAutohide, AutoTile} = globalThis.extensionStubs;"
+{ echo "const {Extension, WorkspaceNumbers, PanelAutohide, AutoTile, LogoutGuard} = globalThis.extensionStubs;"
   sed -E '/^import .*;$/d' ../extension.js; } > ./.extension-under-test.mjs
 node ./extension.test.mjs
 node ./borrowed.test.mjs
+
+{ echo "const {GLib, Meta, Shell, Main, MessageTray, global} = globalThis.logoutStubs;"
+  sed -E '/^import .*;$/d' ../logout.js; } > ./.logout-under-test.mjs
+node ./logout.test.mjs
 
 { echo "import {Clutter, Cogl, GObject, Meta, Shell, St, global} from '$PWD/outline-stubs.mjs';"
   sed -E '/^import .*;$/d' ../outline.js; } > ./.outline-under-test.mjs

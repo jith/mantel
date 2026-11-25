@@ -31,6 +31,8 @@ export default class MantelPreferences extends ExtensionPreferences {
                 _('Number the top bar indicator, click a number to switch, and reach a workspace that does not exist yet with Super+1…0. Workspaces added that way go again once they are empty')],
             ['autohide', _('Auto-hide the top bar'),
                 _('Hide the bar when a window needs the space; push the pointer at the top edge to bring it back')],
+            ['guard-logout', _('Ask apps before logging out'),
+                _('Log out, power off and restart close every app first, and stop with a warning if one asks about unsaved work or does not close')],
         ];
 
         for (const [key, title, subtitle] of rows) {

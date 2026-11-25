@@ -25,12 +25,14 @@ const feature = name => class {
     }
 };
 
-const settings = new Settings({'workspace-numbers': true, 'autohide': true, 'auto-tile': true});
+const settings = new Settings({'workspace-numbers': true, 'autohide': true, 'auto-tile': true,
+    'guard-logout': true});
 globalThis.extensionStubs = {
     Extension: class { getSettings() { return settings; } },
     WorkspaceNumbers: feature('numbers'),
     PanelAutohide: feature('autohide'),
     AutoTile: feature('tiling'),
+    LogoutGuard: feature('logout'),
 };
 const {default: MantelExtension} = await import('./.extension-under-test.mjs');
 const state = () => [...running].sort().join(',');
@@ -38,9 +40,9 @@ const state = () => [...running].sort().join(',');
 console.log('\nfeatures  (each from its own setting)');
 const extension = new MantelExtension();
 extension.enable();
-expect('all three start', state() === 'autohide,numbers,tiling', state());
+expect('all four start', state() === 'autohide,logout,numbers,tiling', state());
 settings.set_boolean('autohide', false);
-expect('one switched off stops alone', state() === 'numbers,tiling', state());
+expect('one switched off stops alone', state() === 'logout,numbers,tiling', state());
 settings.set_boolean('autohide', true);
 
 console.log('\na feature that throws  (the others carry on)');
@@ -51,7 +53,7 @@ settings.set_boolean('autohide', false);
 broken.autohide = 'both';
 settings.set_boolean('autohide', true);
 expect('it is unwound', !running.has('autohide'), state());
-expect('the others still run', state() === 'numbers,tiling', state());
+expect('the others still run', state() === 'logout,numbers,tiling', state());
 expect('and both failures are logged', errors.length === 2, errors.join('; '));
 settings.set_boolean('autohide', false);
 broken.numbers = 'both';
