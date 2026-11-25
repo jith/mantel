@@ -104,6 +104,8 @@ export class AutoTile {
         this._pinned = new Set();
         // Taken out of a fullscreen nobody asked for, which is done only once.
         this._unfullscreened = new Set();
+        // Floating, and maximized by the chord rather than a button.
+        this._chordMaximized = new Set();
         // Opened, not yet drawn.
         this._pending = new Set();
         this._queued = new Set();
@@ -215,7 +217,7 @@ export class AutoTile {
 
         for (const collection of [this._trees, this._floating, this._popped, this._scratch,
             this._pseudo, this._maximized, this._raised, this._pinned, this._unfullscreened,
-            this._pending, this._queued, this._sent, this._untiled, this._placements, this._inputs])
+            this._chordMaximized, this._pending, this._queued, this._sent, this._untiled, this._placements, this._inputs])
             collection.clear();
     }
 
@@ -541,6 +543,8 @@ export class AutoTile {
         } else {
             if (found)
                 this._maximized.add(window);
+            else
+                this._chordMaximized.add(window);
             window.maximize();
         }
     }
@@ -859,8 +863,11 @@ export class AutoTile {
                 const found = this._findLeaf(window);
                 this._apply(found ? found.key : this._admit(window));
             }),
-            'notify::minimized', () => this._defer(() =>
-                this._apply(window.minimized ? this._detach(window) : this._insert(window))),
+            'notify::minimized', () => this._defer(() => {
+                if (window.minimized && this._refuseMinimize(window))
+                    return;
+                this._apply(window.minimized ? this._detach(window) : this._insert(window));
+            }),
             'notify::maximized-horizontally', () => this._onMaximizeChanged(window),
             'notify::maximized-vertically', () => this._onMaximizeChanged(window),
             // Apps can move their own windows after they open.
@@ -877,8 +884,8 @@ export class AutoTile {
             this._endGrab();
 
         for (const collection of [this._floating, this._popped, this._scratch, this._pseudo,
-            this._maximized, this._raised, this._pinned, this._unfullscreened, this._pending,
-            this._sent, this._untiled, this._placements, this._inputs])
+            this._maximized, this._raised, this._pinned, this._unfullscreened,
+            this._chordMaximized, this._pending, this._sent, this._untiled, this._placements, this._inputs])
             collection.delete(window);
 
         const key = this._detach(window);
@@ -889,7 +896,11 @@ export class AutoTile {
     // burst is answered with one pass per tree.
     _onMaximizeChanged(window) {
         const found = this._findLeaf(window);
-        if (!found || window === this._grabbed || this._queued.has(found.key))
+        if (!found) {
+            this._defer(() => this._refuseFloatingMaximize(window));
+            return;
+        }
+        if (window === this._grabbed || this._queued.has(found.key))
             return;
 
         const key = found.key;
@@ -902,7 +913,9 @@ export class AutoTile {
                 if (this._maximized.has(leaf.window) || !this._appMaximized(leaf))
                     continue;
 
-                if (this._userAsked(leaf.window)) {
+                if (this._settings.get_boolean('ignore-min-max')) {
+                    this._log(`"${leaf.window.get_title()}" was maximized; kept in its tile`);
+                } else if (this._userAsked(leaf.window)) {
                     this._log(`"${leaf.window.get_title()}" floats over its tile`);
                     this._maximized.add(leaf.window);
                 } else {
@@ -931,18 +944,49 @@ export class AutoTile {
     }
 
     // A fullscreen its user did not ask for is undone, once, and the window
-    // takes its tile: as it is let in, whatever came before, since starting
-    // an app counts as input; once in, unless it follows a click or a key
-    // press in that window. Returns whether it was undone.
+    // takes its tile. As it is let in, mutter's guess (rules.js) is undone
+    // whatever came before, since starting an app counts as input. Once in
+    // the layout, any fullscreen is, unless it follows a click or a key press
+    // in that window: an app bringing back how it was last closed, as Codex
+    // does, asks for it by itself. Returns whether it was undone.
     _undoStrayFullscreen(window, opening) {
-        if (!strayFullscreen(window) || this._unfullscreened.has(window) ||
-            (!opening && this._userAsked(window)))
+        const unasked = opening
+            ? strayFullscreen(window)
+            : window.is_fullscreen() && (strayFullscreen(window) || !!this._findLeaf(window)) &&
+                !this._userAsked(window);
+        if (!unasked || this._unfullscreened.has(window))
             return false;
 
         this._unfullscreened.add(window);
         this._log(`"${window.get_title()}" was fullscreen without asking; back to its tile`);
         window.unmake_fullscreen();
         return true;
+    }
+
+    // Minimize and maximize keep no window from the layout, from whichever
+    // button, shortcut or app they come: some apps draw their own title bar
+    // buttons, which the button layout cannot take away. The scratchpad,
+    // kept minimized, and the maximize chord are Mantel's own.
+    _refuseMinimize(window) {
+        if (!this._settings.get_boolean('ignore-min-max') || this._scratch.has(window))
+            return false;
+
+        this._log(`"${window.get_title()}" was minimized; kept in the layout`);
+        window.unminimize();
+        return true;
+    }
+
+    _refuseFloatingMaximize(window) {
+        if (!window.is_maximized()) {
+            this._chordMaximized.delete(window);
+            return;
+        }
+        if (!this._settings.get_boolean('ignore-min-max') || !this._floating.has(window) ||
+            this._chordMaximized.has(window) || this._findLeaf(window))
+            return;
+
+        this._log(`"${window.get_title()}" was maximized; kept at its size`);
+        window.unmaximize();
     }
 
     // Unmaximized, it is let go, to be placed in its tile again.

@@ -21,19 +21,23 @@ space back to the window it was split from.
 - **Minimum sizes are respected.** A window is never given less room than it
   will take. One that cannot fit beside the others either way round opens
   floating instead of being drawn over them.
-- **Maximize floats.** GNOME's title bar buttons for minimize and maximize
-  are removed while tiling (and given back afterwards), and a double click on
-  a title bar does nothing. Apps that draw their own title
-  bar — Flutter apps such as Ubuntu's App Center and Security
-  Center, Electron apps such as VS Code — keep their buttons. Maximizing a
-  tiled window, or `Super`+`Alt`+`F`, floats it over its tile, above the
-  others; unmaximizing it, or `Super`+`T`, puts it back in the same tile.
-  An app that maximizes itself, as some do to open the way they were last
-  closed, is put back in its tile: only a maximize that follows a click or a
-  key press in that window counts.
-  Minimizing takes a window out of the layout until it is restored.
-  Focusing a tiled window under a maximized one maximizes it in that one's
-  place.
+- **Minimize and maximize keep no window from the layout.** Their title bar
+  buttons are removed while tiling (and given back afterwards) from GNOME,
+  GTK and Chromium title bars, and a double click on a title bar does
+  nothing. Apps that draw their own buttons — Electron apps such as Codex
+  and VS Code, Flutter apps such as Ubuntu's App Center — keep them, but a
+  window is given back at once, in its tile, however it was minimized or
+  maximized: by a button, a shortcut such as `Super`+`H`, the dock, or the
+  app itself. `Super`+`Alt`+`F` still maximizes a window over its tile, above
+  the others, and again puts it back; the scratchpad still puts windows
+  away. Focusing a tiled window under a maximized one maximizes it in that
+  one's place. With **Ignore minimize and maximize** off in Settings, a
+  window maximized after a click or a key press in it floats over its tile
+  instead, and a minimized one leaves the layout until it is restored.
+- **Fullscreen is the user's.** A tiled window that turns fullscreen right
+  after a key press or a click in it (`F11`, a video's fullscreen button)
+  stays so. One that does it by itself, as Codex does to open the way it
+  was last closed, is put back in its tile.
 - **Dragging** a tiled window onto another swaps the two; dragging a shared
   edge moves it for both neighbours.
 - **Focus follows the mouse**, without raising the window (GNOME's *sloppy*
@@ -141,6 +145,7 @@ In **Extensions → Mantel → Settings**:
 | Auto-hide the top bar | on |
 | Ask apps before logging out | on |
 | Focus follows the mouse, while tiling | on |
+| Ignore minimize and maximize, while tiling | on |
 
 Each takes effect immediately — no logout needed to toggle it.
 

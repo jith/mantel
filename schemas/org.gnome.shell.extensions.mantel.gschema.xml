@@ -15,7 +15,7 @@
     <key name="auto-tile" type="b">
       <default>true</default>
       <summary>Tile windows as they open</summary>
-      <description>Give the first window on a workspace the whole of it, and split the focused window to make room for each one after that. Minimize and maximize lose their title bar buttons and their shortcuts while it is on, and get them back when it is switched off; a tiled window that maximizes anyway floats above the others until it is unmaximized, and then takes its tile back.</description>
+      <description>Give the first window on a workspace the whole of it, and split the focused window to make room for each one after that. Minimize and maximize lose their title bar buttons while it is on, and get them back when it is switched off; see ignore-min-max for windows that keep theirs.</description>
     </key>
     <key name="guard-logout" type="b">
       <default>true</default>
@@ -26,6 +26,11 @@
       <default>['org.gnome.Calculator', 'gnome-calculator', 'org.gnome.Characters', 'org.gnome.clocks', 'org.gnome.Weather', 'org.gnome.font-viewer', 'org.gnome.Extensions', 'org.gnome.Shell.Extensions', 'org.gnome.NautilusPreviewer', 'org.gnome.Loupe', 'org.gnome.eog', 'org.gnome.Papers', 'org.gnome.Evince', 'org.gnome.Showtime', 'org.gnome.Totem', 'net.nokyan.Resources', 'gnome-system-monitor', 'org.gnome.SystemMonitor', 'org.pulseaudio.pavucontrol', 'blueman-manager', 'nm-connection-editor', 'mpv', 'imv', '1password', 'com.onepassword.OnePassword', 'bitwarden', 'localsend*', 'steam']</default>
       <summary>Apps that open floating</summary>
       <description>Windows of these apps open floating instead of tiled, in front of the layout. Each entry is an app ID — the name of its .desktop file without the extension, or the window's app ID — matched ignoring case; an entry ending in * matches every ID starting with the rest. The float key still moves a window into the layout or out of it.</description>
+    </key>
+    <key name="ignore-min-max" type="b">
+      <default>true</default>
+      <summary>Keep windows in the layout</summary>
+      <description>While windows are tiled, minimize and maximize do nothing, from title bar buttons, shortcuts or the apps themselves: a window is given back as it was at once. GNOME and GTK title bars lose the two buttons; apps that draw their own, such as Electron apps, keep them, but they no longer take the window out of the layout. The maximize chord and the scratchpad still work. Off, a maximized tiled window floats over its tile and a minimized one leaves the layout until it is restored.</description>
     </key>
     <key name="focus-follows-mouse" type="b">
       <default>true</default>

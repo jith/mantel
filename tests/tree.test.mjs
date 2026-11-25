@@ -915,7 +915,7 @@ g._track(Wayland);
 g._apply(g._admit(Wayland));
 pass(5000);
 Wayland.guessFullscreen();
-expect('a Wayland window is left fullscreen: mutter never guesses for it', Wayland.is_fullscreen());
+expect('a Wayland window in the layout is put back too', !Wayland.is_fullscreen() && !!g._findLeaf(Wayland));
 Wayland.fullscreen = false;
 Wayland.emit('notify::fullscreen');
 g._apply(g._detach(Wayland));
@@ -938,6 +938,71 @@ expect('one that opens fullscreen only, like a game, stays so', Game.is_fullscre
 for (const window of [Codex, Editor, Asked, Wayland, Restored, Game])
     window.disconnectObject();
 setWorkspaceIndex(0);
+
+section('an app that restores fullscreen once tiled  (Codex, back in its tile)');
+const Restoring = win('Restoring', {clientType: Meta.WindowClientType.X11});
+g._track(Restoring);
+setMru([]);
+g._apply(g._admit(Restoring));
+setMru([Restoring]);
+const Beside2 = win('Beside2');
+g._track(Beside2);
+g._apply(g._admit(Beside2, Restoring));
+pass(5000);
+Restoring.guessFullscreen();
+expect('fullscreen while not maximized is undone too', !Restoring.is_fullscreen());
+check('and it keeps its share', Restoring, '768x960+0+0');
+for (const window of [Restoring, Beside2]) {
+    g._apply(g._detach(window));
+    window.disconnectObject();
+}
+
+section('ignore minimize and maximize  (a window stays in its tile)');
+const k = newTiler();
+k._settings.user['ignore-min-max'] = true;
+const Left = win('Left'), Right = win('Right');
+for (const window of [Left, Right])
+    k._track(window);
+setMru([]);
+k._apply(k._admit(Left));
+setMru([Left]);
+k._apply(k._admit(Right, Left));
+check('Left in its half', Left, '768x960+0+0');
+pass(300);
+touch(Right);
+Right.maximize();
+expect('a maximize, even after a click, is undone', !Right.is_maximized() && !k._maximized.has(Right));
+check('and it keeps its tile', Right, '768x960+768+0');
+setFocus(Right);
+k._toggleMaximize();
+expect('the chord still maximizes it', Right.is_maximized() && k._maximized.has(Right));
+k._toggleMaximize();
+expect('and puts it back', !Right.is_maximized());
+Left.minimize();
+Left.emit('notify::minimized');
+expect('a minimize is undone', !Left.minimized && !!k._findLeaf(Left));
+check('and the layout is unchanged', Right, '768x960+768+0');
+setFocus(Left);
+k._toScratchpad();
+expect('the scratchpad still puts a window away', Left.minimized && k._scratch.has(Left));
+Left.emit('notify::minimized');
+expect('and keeps it away', Left.minimized);
+const Floater = win('Floater');
+k._track(Floater);
+k._raise(Floater);
+Floater.maximize();
+Floater.emit('notify::maximized-horizontally');
+expect('a floating window is not maximized either', !Floater.is_maximized());
+setFocus(Floater);
+k._toggleMaximize();
+expect('unless by the chord', Floater.is_maximized());
+k._settings.user['ignore-min-max'] = false;
+Floater.unmaximize();
+Right.minimize();
+Right.emit('notify::minimized');
+expect('switched off, a minimize leaves the layout', Right.minimized && !k._findLeaf(Right));
+for (const window of [Left, Right, Floater])
+    window.disconnectObject();
 
 console.log(`\n${failures === 0 ? 'all assertions passed' : `${failures} FAILURES`}\n`);
 process.exit(failures ? 1 : 0);

@@ -26,7 +26,7 @@ export default class MantelPreferences extends ExtensionPreferences {
 
         const rows = [
             ['auto-tile', _('Tile windows as they open'),
-                _('The first window on a workspace takes all of it, and each one after that splits the focused window. Maximizing a tiled window floats it until it is restored')],
+                _('The first window on a workspace takes all of it, and each one after that splits the focused window. Super+Alt+F maximizes a window over its tile')],
             ['workspace-numbers', _('Workspace numbers'),
                 _('Number the top bar indicator, click a number to switch, and reach a workspace that does not exist yet with Super+1…0. Workspaces added that way go again once they are empty')],
             ['autohide', _('Auto-hide the top bar'),
@@ -54,6 +54,13 @@ export default class MantelPreferences extends ExtensionPreferences {
         });
         layout.add(hover);
         settings.bind('focus-follows-mouse', hover, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+        const keep = new Adw.SwitchRow({
+            title: _('Ignore minimize and maximize'),
+            subtitle: _('Title bar buttons, shortcuts and apps cannot take a window out of the layout. Super+Alt+F still maximizes'),
+        });
+        layout.add(keep);
+        settings.bind('ignore-min-max', keep, 'active', Gio.SettingsBindFlags.DEFAULT);
 
         // The setting key, its title and subtitle, and the largest value.
         const lengths = [
