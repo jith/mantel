@@ -16,7 +16,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {BorrowedSetting} from './borrowed.js';
 import {FocusOutline} from './outline.js';
-import {floatRule, followsWorkspaces, minSize, pinned, tileable} from './rules.js';
+import {floatRule, followsWorkspaces, holdLegacyFullscreen, minSize, pinned, strayFullscreen, tileable} from './rules.js';
 
 const TILING_ASSISTANT = 'org.gnome.shell.extensions.tiling-assistant';
 const OUTLINE_HINTS = [1, 3];
@@ -102,6 +102,8 @@ export class AutoTile {
         // Put above, and on every workspace, by Mantel rather than their user.
         this._raised = new Set();
         this._pinned = new Set();
+        // Taken out of a fullscreen nobody asked for, which is done only once.
+        this._unfullscreened = new Set();
         // Opened, not yet drawn.
         this._pending = new Set();
         this._queued = new Set();
@@ -120,6 +122,7 @@ export class AutoTile {
     }
 
     enable() {
+        holdLegacyFullscreen(this, true);
         this._loans = this._borrow();
         this._lend(this._loans);
         this._outline = new FocusOutline();
@@ -166,6 +169,7 @@ export class AutoTile {
 
         for (const window of this._windows()) {
             this._track(window);
+            this._undoStrayFullscreen(window, true);
             if (!this._floating.has(window) && !this._findLeaf(window))
                 this._admit(window);
         }
@@ -183,6 +187,7 @@ export class AutoTile {
         for (const loan of this._loans)
             loan.giveBack();
         this._loans = [];
+        holdLegacyFullscreen(this, false);
     }
 
     // Also run as the session ends, since placing a window that is being
@@ -209,8 +214,8 @@ export class AutoTile {
         this._outline = null;
 
         for (const collection of [this._trees, this._floating, this._popped, this._scratch,
-            this._pseudo, this._maximized, this._raised, this._pinned, this._pending,
-            this._queued, this._sent, this._untiled, this._placements, this._inputs])
+            this._pseudo, this._maximized, this._raised, this._pinned, this._unfullscreened,
+            this._pending, this._queued, this._sent, this._untiled, this._placements, this._inputs])
             collection.clear();
     }
 
@@ -825,6 +830,7 @@ export class AutoTile {
     // brings it in. Picture-in-picture goes to the top right corner and
     // follows across workspaces.
     _admit(window, preferred = null) {
+        this._undoStrayFullscreen(window, true);
         this._inputs.set(window, window.get_user_time());
 
         const rule = floatRule(window, this._settings.get_strv('float-apps'));
@@ -847,7 +853,8 @@ export class AutoTile {
             'unmanaging', () => this._forget(window),
             'workspace-changed', () => this._defer(() => this._rehome(window)),
             'notify::fullscreen', () => this._defer(() => {
-                if (window.is_fullscreen() || this._floating.has(window))
+                if (this._floating.has(window) || this._undoStrayFullscreen(window, false) ||
+                    window.is_fullscreen())
                     return;
                 const found = this._findLeaf(window);
                 this._apply(found ? found.key : this._admit(window));
@@ -870,8 +877,8 @@ export class AutoTile {
             this._endGrab();
 
         for (const collection of [this._floating, this._popped, this._scratch, this._pseudo,
-            this._maximized, this._raised, this._pinned, this._pending, this._sent,
-            this._untiled, this._placements, this._inputs])
+            this._maximized, this._raised, this._pinned, this._unfullscreened, this._pending,
+            this._sent, this._untiled, this._placements, this._inputs])
             collection.delete(window);
 
         const key = this._detach(window);
@@ -921,6 +928,21 @@ export class AutoTile {
         const input = window.get_user_time();
         return input !== this._inputs.get(window) &&
             global.display.get_current_time_roundtrip() - input < USER_MS;
+    }
+
+    // A fullscreen its user did not ask for is undone, once, and the window
+    // takes its tile: as it is let in, whatever came before, since starting
+    // an app counts as input; once in, unless it follows a click or a key
+    // press in that window. Returns whether it was undone.
+    _undoStrayFullscreen(window, opening) {
+        if (!strayFullscreen(window) || this._unfullscreened.has(window) ||
+            (!opening && this._userAsked(window)))
+            return false;
+
+        this._unfullscreened.add(window);
+        this._log(`"${window.get_title()}" was fullscreen without asking; back to its tile`);
+        window.unmake_fullscreen();
+        return true;
     }
 
     // Unmaximized, it is let go, to be placed in its tile again.

@@ -66,8 +66,14 @@ export const GDesktopEnums = {FocusMode: {CLICK: 0, SLOPPY: 1, MOUSE: 2}};
 export let focusMode = GDesktopEnums.FocusMode.SLOPPY;
 export const setFocusMode = mode => (focusMode = mode);
 
+// mutter's guess that an X11 window the size of its monitor is fullscreen.
+export const legacy = {forceFullscreen: true};
+
 export const Meta = {
     prefs_get_workspaces_only_on_primary: () => true,
+    prefs_get_force_fullscreen: () => legacy.forceFullscreen,
+    prefs_set_force_fullscreen: on => (legacy.forceFullscreen = on),
+    WindowClientType: {WAYLAND: 0, X11: 1},
     prefs_get_focus_mode: () => focusMode,
     KeyBindingFlags: {IGNORE_AUTOREPEAT: 1},
     KeyBindingAction: {NONE: 0},
@@ -278,13 +284,14 @@ let stackTop = 0;
 let lastId = 1000;
 export const limit = (width, height) => () => [true, width, height];
 export const win = (title, extra = {}) => ({
-    id: ++lastId, userTime: 0,
+    id: ++lastId, userTime: 0, clientType: 0,
     title, minimized: false, above: false, stuck: false, onAll: false, primary: true,
     monitor: 0, fullscreen: false, maxH: false, maxV: false, stacked: 0, placements: 0,
     frame: rect(100, 100, 600, 400),
     handlers: null, connected: new Map(),
     get_id() { return this.id; },
     get_user_time() { return this.userTime; },
+    get_client_type() { return this.clientType; },
     get_title() { return this.title; },
     get_min_size: () => [false, 0, 0],
     get_max_size: () => [false, 0, 0],
@@ -320,7 +327,15 @@ export const win = (title, extra = {}) => ({
     minimize() { this.minimized = true; },
     unminimize() { this.minimized = false; },
     change_workspace() {},
-    unmake_fullscreen() { this.fullscreen = false; },
+    unmake_fullscreen() {
+        this.fullscreen = false;
+        this.emit('notify::fullscreen');
+    },
+    // As mutter does when an X11 window asks for its monitor's size.
+    guessFullscreen() {
+        this.fullscreen = true;
+        this.emit('notify::fullscreen');
+    },
     setMaximized(on) {
         this.maxH = this.maxV = on;
         this.emit('notify::maximized-horizontally');

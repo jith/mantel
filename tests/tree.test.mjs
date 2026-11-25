@@ -1,9 +1,9 @@
 import {AutoTile} from './.tree-under-test.mjs';
-import {tileable} from './.rules-under-test.mjs';
+import {holdLegacyFullscreen, tileable} from './.rules-under-test.mjs';
 import {readFileSync} from 'node:fs';
 import {SHORTCUT_GROUPS} from '../shortcuts.js';
 import {FocusOutline, GDesktopEnums, Meta, Settings, apps, bound, chords as press, clockStep, global,
-    hold, limit, pass, pump, queued, rect, release, schemas, setFocus, setFocusMode, setMru, setPointer,
+    hold, legacy, limit, pass, pump, queued, rect, release, schemas, setFocus, setFocusMode, setMru, setPointer,
     setWorkspaceIndex, taken, tick, touch, win} from './stubs.mjs';
 
 let failures = 0;
@@ -854,6 +854,90 @@ console.warn = warn;
 expect('one that cannot be read is passed over', shape(t) === 'S4,S1' &&
     warnings.at(-1).includes('saved layout'), warnings.at(-1));
 t.disable();
+
+section('mutter\'s fullscreen guess  (off while tiling or auto-hide runs)');
+const tiling = {}, autohide = {};
+holdLegacyFullscreen(tiling, true);
+expect('off once a feature holds it', legacy.forceFullscreen === false);
+holdLegacyFullscreen(autohide, true);
+holdLegacyFullscreen(tiling, false);
+expect('still off while another holds it', legacy.forceFullscreen === false);
+holdLegacyFullscreen(tiling, false);
+expect('letting go twice changes nothing', legacy.forceFullscreen === false);
+holdLegacyFullscreen(autohide, false);
+expect('back once none holds it', legacy.forceFullscreen === true);
+legacy.forceFullscreen = false;
+holdLegacyFullscreen(tiling, true);
+holdLegacyFullscreen(tiling, false);
+expect('back as it was, not as mutter ships it', legacy.forceFullscreen === false);
+legacy.forceFullscreen = true;
+
+section('a fullscreen nobody asked for  (an X11 app back in its tile)');
+setWorkspaceIndex(5);
+const g = newTiler();
+const Codex = win('Codex', {clientType: Meta.WindowClientType.X11});
+const Editor = win('Editor');
+for (const window of [Codex, Editor])
+    g._track(window);
+setMru([]);
+g._apply(g._admit(Codex));
+expect('alone, the layout maximizes it', Codex.is_maximized());
+pass(5000);
+Codex.guessFullscreen();
+expect('mutter\'s guess is undone', !Codex.is_fullscreen());
+expect('and it keeps its place', !!g._findLeaf(Codex) && !g._floating.has(Codex));
+setMru([Codex]);
+g._apply(g._admit(Editor, Codex));
+check('it shares the workspace as usual', Codex, '768x960+0+0');
+check('beside the new window', Editor, '768x960+768+0');
+g._apply(g._detach(Editor));
+pass(5000);
+Codex.guessFullscreen();
+expect('undone only once, so no fight with an app that insists', Codex.is_fullscreen());
+Codex.fullscreen = false;
+Codex.emit('notify::fullscreen');
+g._apply(g._detach(Codex));
+
+const Asked = win('Asked', {clientType: Meta.WindowClientType.X11});
+g._track(Asked);
+setMru([]);
+g._apply(g._admit(Asked));
+pass(300);
+touch(Asked);
+Asked.guessFullscreen();
+expect('one its user asked for stays', Asked.is_fullscreen());
+Asked.fullscreen = false;
+Asked.emit('notify::fullscreen');
+g._apply(g._detach(Asked));
+
+const Wayland = win('Wayland');
+g._track(Wayland);
+g._apply(g._admit(Wayland));
+pass(5000);
+Wayland.guessFullscreen();
+expect('a Wayland window is left fullscreen: mutter never guesses for it', Wayland.is_fullscreen());
+Wayland.fullscreen = false;
+Wayland.emit('notify::fullscreen');
+g._apply(g._detach(Wayland));
+
+const Restored = win('Restored', {clientType: Meta.WindowClientType.X11, fullscreen: true,
+    maxH: true, maxV: true});
+touch(Restored);
+g._track(Restored);
+setMru([]);
+g._apply(g._admit(Restored));
+expect('one that opens fullscreen and maximized is let in', !Restored.is_fullscreen() &&
+    !!g._findLeaf(Restored));
+g._apply(g._detach(Restored));
+
+const Game = win('Game', {clientType: Meta.WindowClientType.X11, fullscreen: true});
+g._track(Game);
+g._apply(g._admit(Game));
+expect('one that opens fullscreen only, like a game, stays so', Game.is_fullscreen() &&
+    !g._findLeaf(Game));
+for (const window of [Codex, Editor, Asked, Wayland, Restored, Game])
+    window.disconnectObject();
+setWorkspaceIndex(0);
 
 console.log(`\n${failures === 0 ? 'all assertions passed' : `${failures} FAILURES`}\n`);
 process.exit(failures ? 1 : 0);

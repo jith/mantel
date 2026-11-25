@@ -23,6 +23,8 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {PressureBarrier} from 'resource:///org/gnome/shell/ui/layout.js';
 
+import {holdLegacyFullscreen} from './rules.js';
+
 const State = {HIDDEN: 0, SHOWING: 1, SHOWN: 2, HIDING: 3};
 
 // dash-to-dock defaults, so both screen edges behave alike where it is in use.
@@ -84,6 +86,9 @@ export class PanelAutohide {
     }
 
     enable() {
+        // Without the bar's strut a maximized window is the monitor's size,
+        // which mutter can take for a fullscreen request (rules.js).
+        holdLegacyFullscreen(this, true);
         this._strutEntry = Main.layoutManager._trackedActors
             .find(entry => entry.actor === this._panelBox) ?? null;
         this._padOverviewSearch();
@@ -187,6 +192,7 @@ export class PanelAutohide {
             Main.layoutManager._queueUpdateRegions();
             this._strutEntry = null;
         }
+        holdLegacyFullscreen(this, false);
     }
 
     // Everything that can lead to the panel being measured or moved.

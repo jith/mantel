@@ -103,3 +103,33 @@ export function floatRule(window, floatApps) {
 
 // Picture-in-picture stays on every workspace.
 export const followsWorkspaces = window => PIP_TITLES.test(window.get_title() ?? '');
+
+// mutter takes an X11 window that asks to be exactly the size of its monitor
+// for one asking to be fullscreen. Electron and Chromium apps under XWayland
+// ask for their maximized size again as they are resized, and with the top
+// bar hidden, or a window alone in its tile, that is the monitor's size: the
+// window turns fullscreen over the layout. The guess is off while any holder
+// is, and back as it was once none is.
+const legacyHolders = new Set();
+let legacyBefore = null;
+
+export function holdLegacyFullscreen(holder, hold) {
+    if (hold && !legacyHolders.size) {
+        legacyBefore = Meta.prefs_get_force_fullscreen();
+        Meta.prefs_set_force_fullscreen(false);
+    }
+
+    if (hold) {
+        legacyHolders.add(holder);
+    } else if (legacyHolders.delete(holder) && !legacyHolders.size) {
+        Meta.prefs_set_force_fullscreen(legacyBefore);
+        legacyBefore = null;
+    }
+}
+
+// What that guess leaves, or an app brings back from its last session: an X11
+// window fullscreen and maximized at once. A user who asks for fullscreen has
+// pressed a key or clicked in the window just before, which the caller checks.
+export const strayFullscreen = window =>
+    window.get_client_type() === Meta.WindowClientType.X11 &&
+    window.is_fullscreen() && window.is_maximized();
